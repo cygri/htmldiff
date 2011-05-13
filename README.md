@@ -1,10 +1,11 @@
 htmldiff.py
 -----------
 
-Usage: htmldiff version1.html version2.html
+Usage: `htmldiff version1.html version2.html > diff.html`
 
-This outputs HTML that shows the differences in text between both
-versions. Differences in markup are not shown.
+htmldiff outputs HTML that shows the differences in text between
+two versions of an HTML document. Differences in markup are not
+shown.
 
 Original version is from [Ian Bicking][1].
 
