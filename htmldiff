@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """
 htmldiff.py
-(C) Ian Bicking <ianb@colorstudy.com>
+Original is (C) Ian Bicking <ianb@colorstudy.com>
+With changes from Richard Cyganiak <richard@cyganiak.de>
 
 Finds the differences between two HTML files.  *Not* line-by-line
 comparison (more word-by-word).
@@ -52,7 +53,7 @@ class HTMLMatcher(SequenceMatcher):
         return result
 
     def splitWords(self, t):
-        return t.strip().split()
+        return re.findall(r'([^ \n\r\t]+|[ \n\r\t]+)', t)
 
     def splitHTML(self, t):
         t = commentRE.sub('', t)
@@ -75,7 +76,6 @@ class HTMLMatcher(SequenceMatcher):
             if tag == 'equal':
                 for item in a[i1:i2]:
                     out.write(item)
-                    out.write(' ')
             if tag == 'delete' or tag == 'replace':
                 self.textDelete(a[i1:i2], out)
             if tag == 'insert' or tag == 'replace':
@@ -87,45 +87,48 @@ class HTMLMatcher(SequenceMatcher):
         return html
 
     def textDelete(self, lst, out):
-        inSpan = False
+        text = ''
         for item in lst:
             if item.startswith('<'):
-                if inSpan:
-                    out.write(self.endDeleteText())
-                    inSpan = False
+                self.outDelete(text, out)
+                text = ''
                 out.write(self.formatDeleteTag(item))
             else:
-                if not inSpan:
-                    out.write(self.startDeleteText())
-                    inSpan = True
-                out.write(item)
-                out.write(' ')
-        if inSpan:
-            out.write(self.endDeleteText())
+                text += item
+        self.outDelete(text, out)
 
     def textInsert(self, lst, out):
-        inSpan = False
+        text = ''
         for item in lst:
             if item.startswith('<'):
-                if inSpan:
-                    out.write(self.endInsertText())
-                    inSpan = False
+                self.outInsert(text, out)
+                text = ''
                 out.write(self.formatInsertTag(item))
                 out.write(item)
-                out.write(' ')
             else:
-                if not inSpan:
-                    out.write(self.startInsertText())
-                    inSpan = True
-                out.write(item)
-                out.write(' ')
-        if inSpan:
+                text += item
+        self.outInsert(text, out)
+
+    def outDelete(self, s, out):
+        if s.strip() == '':
+            out.write(s)
+        else:
+            out.write(self.startDeleteText())
+            out.write(s)
+            out.write(self.endDeleteText())
+
+    def outInsert(self, s, out):
+        if s.strip() == '':
+            out.write(s)
+        else:
+            out.write(self.startInsertText())
+            out.write(s)
             out.write(self.endInsertText())
 
     def stylesheet(self):
         return '''
 .insert { background-color: #aaffaa }
-.delete { background-color: #ff8888 }
+.delete { background-color: #ff8888; text-decoration: line-through }
 .tagInsert { background-color: #007700; color: #ffffff }
 .tagDelete { background-color: #770000; color: #ffffff }
 '''
@@ -142,17 +145,15 @@ class HTMLMatcher(SequenceMatcher):
     def startInsertText(self):
         return '<span class="insert">'
     def endInsertText(self):
-        return '</span> '
+        return '</span>'
     def startDeleteText(self):
         return '<span class="delete">'
     def endDeleteText(self):
-        return '</span> '
+        return '</span>'
     def formatInsertTag(self, tag):
-        return ('<span class="tagInsert">insert: <tt>%s</tt></span> '
-                % htmlEncode(tag))
+        return '<span class="tagInsert">insert: <tt>%s</tt></span>' % htmlEncode(tag)
     def formatDeleteTag(self, tag):
-        return ('<span class="tagDelete">delete: <tt>%s</tt></span> '
-                % htmlEncode(tag))
+        return '<span class="tagDelete">delete: <tt>%s</tt></span>' % htmlEncode(tag)
 
 class NoTagHTMLMatcher(HTMLMatcher):
     def formatInsertTag(self, tag):
@@ -171,7 +172,8 @@ def htmldiff(source1, source2, addStylesheet=False):
         >>> htmldiff('<b>test1</b>', '<i>test1</i>')
         '<span class="tagDelete">delete: <tt>&lt;b&gt;</tt></span> <span class="tagInsert">insert: <tt>&lt;i&gt;</tt></span> <i> test1 <span class="tagDelete">delete: <tt>&lt;/b&gt;</tt></span> <span class="tagInsert">insert: <tt>&lt;/i&gt;</tt></span> </i> '
     """
-    h = HTMLMatcher(source1, source2)
+#    h = HTMLMatcher(source1, source2)
+    h = NoTagHTMLMatcher(source1, source2)
     return h.htmlDiff(addStylesheet)
 
 def diffFiles(f1, f2):
