@@ -14,11 +14,11 @@ Using with Mercurial
 
 Put `htmldiff` on the path, and add the following to `~/.hgrc`:
 
-   [extensions]
-   hgext.extdiff =
+    [extensions]
+    hgext.extdiff =
 
-   [extdiff]
-   cmd.htmldiff = htmldiff
+    [extdiff]
+    cmd.htmldiff = htmldiff
 
 Then you can do: `hg htmldiff index.html > diff.html`
 
