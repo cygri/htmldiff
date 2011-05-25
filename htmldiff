@@ -25,7 +25,7 @@ def htmlEncode(s, esc=cgi.escape):
     return esc(s, 1)
 
 commentRE = re.compile('<!--.*?-->', re.S)
-tagRE = re.compile('<.*?>', re.S)
+tagRE = re.compile('<script.*?>.*?</script>|<.*?>', re.S)
 headRE = re.compile('<\s*head\s*>', re.S | re.I)
 
 class HTMLMatcher(SequenceMatcher):
