@@ -27,11 +27,19 @@ def htmlEncode(s, esc=cgi.escape):
 commentRE = re.compile('<!--.*?-->', re.S)
 tagRE = re.compile('<script.*?>.*?</script>|<.*?>', re.S)
 headRE = re.compile('<\s*head\s*>', re.S | re.I)
+wsRE = re.compile('^([ \n\r\t]|&nbsp;)+$')
+stopwords = ['I', 'a', 'about', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from', 'have', 'how', 'in', 'is', 'it', 'of', 'on', 'or', 'that', 'the', 'this', 'to', 'was', 'what', 'when', 'where', 'who', 'will', 'with']
+
+# Note: Just returning false here gives a generally more accurate,
+# but much slower and more noisy result.
+def isJunk(x):
+#    return False
+    return wsRE.match(x) or x.lower() in stopwords
 
 class HTMLMatcher(SequenceMatcher):
 
     def __init__(self, source1, source2):
-        SequenceMatcher.__init__(self, None, source1, source2)
+        SequenceMatcher.__init__(self, isJunk, source1, source2, False)
 
     def set_seq1(self, a):
         SequenceMatcher.set_seq1(self, self.splitHTML(a))
@@ -53,7 +61,7 @@ class HTMLMatcher(SequenceMatcher):
         return result
 
     def splitWords(self, t):
-        return re.findall(r'([^ \n\r\t]+|[ \n\r\t]+)', t)
+        return re.findall(r'([^ \n\r\t,.&;/#=<>()-]+|(?:[ \n\r\t]|&nbsp;)+|[,.&;/#=<>()-])', t)
 
     def splitHTML(self, t):
         t = commentRE.sub('', t)
@@ -70,21 +78,42 @@ class HTMLMatcher(SequenceMatcher):
         opcodes = self.get_opcodes()
         a = self.a
         b = self.b
+#        print a
+#        print b
+#        print opcodes
         out = StringIO()
-        #print [o[0] for o in opcodes]
         for tag, i1, i2, j1, j2 in opcodes:
             if tag == 'equal':
                 for item in a[i1:i2]:
                     out.write(item)
-            if tag == 'delete' or tag == 'replace':
+            if tag == 'delete':
                 self.textDelete(a[i1:i2], out)
-            if tag == 'insert' or tag == 'replace':
+            if tag == 'insert':
                 self.textInsert(b[j1:j2], out)
+            if tag == 'replace':
+                if (self.isInvisibleChange(a[i1:i2], b[j1:j2])):
+                    for item in b[j1:j2]:
+                        out.write(item)
+                else:
+                    self.textDelete(a[i1:i2], out)
+                    self.textInsert(b[j1:j2], out)
         html = out.getvalue()
         out.close()
         if addStylesheet:
             html = self.addStylesheet(html, self.stylesheet())
         return html
+
+    def isInvisibleChange(self, seq1, seq2):
+        if len(seq1) != len(seq2):
+            return False
+        for i in range(0, len(seq1)):
+            if seq1[i][0] == '<' and seq2[i][0] == '<':
+                continue
+            if wsRE.match(seq1[i]) and wsRE.match(seq2[i]):
+                continue
+            if seq1[i] != seq2[i]:
+                return False
+        return True
 
     def textDelete(self, lst, out):
         text = ''
