@@ -1,5 +1,5 @@
-%define project lrms
-%define raw_name htmltest
+%define project htmldiff
+%define raw_name htmldiff
 %define unmangled_version 1a.1.0.dev1
 %define release_type snapshot
 %define release 1
@@ -10,7 +10,7 @@ Name: %{project}-%{raw_name}
 Version: %{unmangled_version}
 Release: %{release}
 Source0: %{raw_name}-%{unmangled_version}
-License: Open Source
+License: MIT
 Group: Development/Libraries
 BuildRoot: ~/build-buildroot
 Prefix: %{_prefix}
