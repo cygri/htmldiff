@@ -1,3 +1,0 @@
-[console_scripts]
-diff_html = htmldiff.htmldiff:main
-
