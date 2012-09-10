@@ -1,0 +1,8 @@
+setup.py
+src/htmldiff/__init__.py
+src/htmldiff/htmldiff.py
+src/htmldiff.egg-info/PKG-INFO
+src/htmldiff.egg-info/SOURCES.txt
+src/htmldiff.egg-info/dependency_links.txt
+src/htmldiff.egg-info/entry_points.txt
+src/htmldiff.egg-info/top_level.txt

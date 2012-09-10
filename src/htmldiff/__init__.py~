@@ -1,0 +1,2 @@
+from settings_parser import SettingsParser
+settings = SettingsParser()

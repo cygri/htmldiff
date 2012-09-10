@@ -1,25 +1,20 @@
-#!/usr/bin/env python
-"""
-htmldiff.py
-Original is (C) Ian Bicking <ianb@colorstudy.com>
-With changes from Richard Cyganiak <richard@cyganiak.de>
-
-Finds the differences between two HTML files.  *Not* line-by-line
-comparison (more word-by-word).
-
-Command-line usage:
-  ./htmldiff.py test1.html test2.html
-
-Better results if you use mxTidy first.  The output is HTML.
-"""
-
-from difflib import SequenceMatcher
+from optparse import OptionParser
+from os.path import abspath, split, join
+import os
 import re
+from difflib import SequenceMatcher
+import cgi
+import HTMLParser
+import sys
 try:
     from cStringIO import StringIO
 except ImportError:
     from StringIO import StringIO
-import cgi
+
+
+def htmlDecode(s):
+    h = HTMLParser.HTMLParser()
+    return h.unescape(s)
 
 def htmlEncode(s, esc=cgi.escape):
     return esc(s, 1)
@@ -38,15 +33,18 @@ def isJunk(x):
 
 class HTMLMatcher(SequenceMatcher):
 
-    def __init__(self, source1, source2):
-        SequenceMatcher.__init__(self, isJunk, source1, source2, False)
+    def __init__(self, source1, source2, accurate_mode):
+        if accurate_mode==False:
+            SequenceMatcher.__init__(self, isJunk, source1, source2, False)
+        if accurate_mode==True:
+            SequenceMatcher.__init__(self, False, source1, source2, False)
 
     def set_seq1(self, a):
         SequenceMatcher.set_seq1(self, self.splitHTML(a))
 
     def set_seq2(self, b):
         SequenceMatcher.set_seq2(self, self.splitHTML(b))
-        
+
     def splitTags(self, t):
         result = []
         pos = 0
@@ -173,14 +171,19 @@ class HTMLMatcher(SequenceMatcher):
 
     def startInsertText(self):
         return '<span class="insert">'
+
     def endInsertText(self):
         return '</span>'
+
     def startDeleteText(self):
         return '<span class="delete">'
+
     def endDeleteText(self):
         return '</span>'
+
     def formatInsertTag(self, tag):
         return '<span class="tagInsert">insert: <tt>%s</tt></span>' % htmlEncode(tag)
+
     def formatDeleteTag(self, tag):
         return '<span class="tagDelete">delete: <tt>%s</tt></span>' % htmlEncode(tag)
 
@@ -190,7 +193,7 @@ class NoTagHTMLMatcher(HTMLMatcher):
     def formatDeleteTag(self, tag):
         return ''
 
-def htmldiff(source1, source2, addStylesheet=False):
+def htmldiff(source1, source2, accurate_mode, addStylesheet=False):
     """
     Return the difference between two pieces of HTML
 
@@ -201,14 +204,21 @@ def htmldiff(source1, source2, addStylesheet=False):
         >>> htmldiff('<b>test1</b>', '<i>test1</i>')
         '<span class="tagDelete">delete: <tt>&lt;b&gt;</tt></span> <span class="tagInsert">insert: <tt>&lt;i&gt;</tt></span> <i> test1 <span class="tagDelete">delete: <tt>&lt;/b&gt;</tt></span> <span class="tagInsert">insert: <tt>&lt;/i&gt;</tt></span> </i> '
     """
-#    h = HTMLMatcher(source1, source2)
-    h = NoTagHTMLMatcher(source1, source2)
+    #h = HTMLMatcher(source1, source2, accurate_mode)
+    h = NoTagHTMLMatcher(source1, source2, accurate_mode)
     return h.htmlDiff(addStylesheet)
 
-def diffFiles(f1, f2):
+def diffFiles(f1, f2, accurate_mode):
+    # Open the files
     source1 = open(f1).read()
     source2 = open(f2).read()
-    return htmldiff(source1, source2, True)
+
+    # Decode the html entities and then encode to utf-8
+    source1 = htmlDecode(source1)
+    source1 = source1.encode("utf-8")
+    source2 = htmlDecode(source2)
+    source2 = source2.encode("utf-8")
+    return htmldiff(source1, source2, True, accurate_mode)
 
 class SimpleHTMLMatcher(HTMLMatcher):
     """
@@ -279,14 +289,76 @@ class TextMatcher(HTMLMatcher):
                 line = '&nbsp;' + line[1:]
             out.write('<tt>%s</tt><br>\n' % line)
 
-if __name__ == '__main__':
-    import sys
-    if not sys.argv[1:]:
-        print "Usage: %s file1 file2" % sys.argv[0]
-        print "or to test: %s test" % sys.argv[0]
-    elif sys.argv[1] == 'test' and not sys.argv[2:]:
-        import doctest
-        doctest.testmod()
-    else:
-        print diffFiles(sys.argv[1], sys.argv[2])
+def diff_files():
+    command_name = "htmldiff"
+    """
+    Given two html files, create an output html diff of the two versions
+    showing the differences between them.
+    """
+    use = """%s INPUT_FILE1 INPUT_FILE2 [-o OUTPUT_FILE]
+
+    INPUT_FILE
+        This is the master document to read in and be converted to named styles
+
+    -o --output OUTPUT_FILE
+        [Optional] Specify a custom filename for output
+
+    -a --accurate-mode
+        [Optional] Use accurate mode instead of risky mode
+
+    -use
+        Will print this message.""" % command_name
+
+    parser = OptionParser(usage = use)
+    parser.add_option('-o', '--output_file', action='store', dest='output_file', default=None,
+                      help='[OPTIONAL] Name of output file')
+    parser.add_option('-a', '--accurate-mode', help='Use accurate mode instead of risky mode', dest='mode',
+                      default=False, action='store_true')
+
+    (options, args) = parser.parse_args()
+    if len(args) < 2:
+        print use
+        exit()
+    if len(args) > 2:
+        print use
+        exit()
+
+    output_file = vars(options)['output_file']
+    accurate_mode = vars(options)['mode']
+    input_file1 = args[0]
+    input_file2 = args[1]
     
+    # Get the actual path
+    path = split(abspath(input_file1))[0]
+
+    if not os.path.exists(input_file1):
+        print "Error: could not find the specified file. Please check your filename and path."
+        exit()
+
+    if not os.path.exists(input_file2):
+        print "Error: could not find the specified file. Please check your filename and path."
+        exit()
+
+    if output_file == None:
+        output_file = 'diff_%s'%split(abspath(input_file1))[1]
+
+    output = join(path, output_file)
+    try:
+        diffed_html = diffFiles(input_file1, input_file2, accurate_mode)
+    except Exception, ex:
+        print ex
+        exit()
+
+    try:
+        dhtml = open(output, 'w')
+        dhtml.write(diffed_html)
+        dhtml.close()
+    except Exception, ex:
+        print ex
+        exit()
+
+def main():
+    diff_files()
+
+if __name__=="__main__":
+    main()
