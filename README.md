@@ -6,7 +6,8 @@ htmldiff outputs HTML that shows the differences in text between
 two versions of an HTML document. Differences in markup are not
 shown.
 
-Original version is from [Ian Bicking](https://github.com/ianb).
+Original version is from [Ian Bicking](https://github.com/ianb)
+with changes from [Richard Cyganiak](https://github.com/cygri).
 
 ## Requirements
 
@@ -39,3 +40,7 @@ this slightly better, at the price of less speed and more noise.
 * Allow diffing only of a given section by specifying an `id`
 * Allow input by URL
 * Make a web service
+
+## License
+
+MIT License, see `LICENSE.txt`.
