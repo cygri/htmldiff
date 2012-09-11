@@ -430,9 +430,6 @@ def diff_files():
     except Exception, ex:
         print ex
         exit()
-
-    print sbs_output
-    print output
     try:
 
         dhtml = open(output, 'w')
