@@ -321,9 +321,12 @@ def span_to_whitespace(html_string, span):
         except ValueError:
             # No more occurances of this span exist in the file.
             break
-        
+
         strip = html_string[s:f]
+        cr = strip.count('</p>')
+        cr = "<br />" * cr
         chars = whitespacegen(len(strip))
+        chars = chars + cr
         html_string = html_string.replace(strip, chars)
     return html_string
 
@@ -331,12 +334,12 @@ def gen_side_by_side(file_string):
     """
     Given an html file as a string, return a new html file with side by
     side differences displayed in a single html file.
-    
+
     @type file_string: string
     @param file_string: string of html to convert
     @return: string of html with side-by-side diffs
     """
-    
+
     container_div = """<div id="container style="width: 100%;">"""
     orig_div_start = """<div id="left" style="clear: left; display: inline; float: left; width: 48%; border-right: 1px solid black; padding-right: 15px; margin-right: 5px;">"""
     new_div_start  = """<div id="right" style="float: right; width: 48%; display: inline; padding-left: 5px; padding-right: 10px;">"""
@@ -375,6 +378,9 @@ def diff_files():
     -a --accurate-mode
         [Optional] Use accurate mode instead of risky mode
 
+    -s --side-by-side
+        [Optional] generate a side-by-side comparision instead of inline
+
     -use
         Will print this message.""" % command_name
 
@@ -382,6 +388,8 @@ def diff_files():
     parser.add_option('-o', '--output_file', action='store', dest='output_file', default=None,
                       help='[OPTIONAL] Name of output file')
     parser.add_option('-a', '--accurate-mode', help='Use accurate mode instead of risky mode', dest='mode',
+                      default=False, action='store_true')
+    parser.add_option('-s', '--side-by-side', help='generate a side-by-side comparision instead of inline', dest='sbs',
                       default=False, action='store_true')
 
     (options, args) = parser.parse_args()
@@ -394,6 +402,7 @@ def diff_files():
 
     output_file = vars(options)['output_file']
     accurate_mode = vars(options)['mode']
+    sbs = vars(options)['sbs']
     input_file1 = args[0]
     input_file2 = args[1]
 
@@ -410,15 +419,14 @@ def diff_files():
 
     if output_file == None:
         output_file = 'diff_%s'%split(abspath(input_file1))[1]
-        sbs_file = 'sbs_diff_%s'%split(abspath(input_file1))[1]
     else:
         sbs_file = 'diff_%s' % output
 
     output = join(path, output_file)
-    sbs_output = join(path, sbs_file)
     try:
         diffed_html = diffFiles(input_file1, input_file2, accurate_mode)
-        sbs_html = gen_side_by_side(diffed_html)
+        if sbs:
+            diffed_html = gen_side_by_side(diffed_html)
     except Exception, ex:
         print ex
         exit()
@@ -430,10 +438,7 @@ def diff_files():
         dhtml = open(output, 'w')
         dhtml.write(diffed_html)
         dhtml.close()
-        
-        sbs = open(sbs_output, 'w')
-        sbs.write(sbs_html)
-        sbs.close()
+
     except Exception, ex:
         print ex
         exit()
