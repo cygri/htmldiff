@@ -1,5 +1,6 @@
 from optparse import OptionParser
 from os.path import abspath, split, join
+from copy import copy
 import os
 import re
 from difflib import SequenceMatcher
@@ -10,7 +11,6 @@ try:
     from cStringIO import StringIO
 except ImportError:
     from StringIO import StringIO
-
 
 def htmlDecode(s):
     h = HTMLParser.HTMLParser()
@@ -72,13 +72,10 @@ class HTMLMatcher(SequenceMatcher):
                 result.extend(self.splitWords(item))
         return result
 
-    def htmlDiff(self, addStylesheet=False):
+    def htmlDiff(self, addStylesheet=True):
         opcodes = self.get_opcodes()
         a = self.a
         b = self.b
-#        print a
-#        print b
-#        print opcodes
         out = StringIO()
         for tag, i1, i2, j1, j2 in opcodes:
             if tag == 'equal':
@@ -206,7 +203,7 @@ def htmldiff(source1, source2, accurate_mode, addStylesheet=False):
     """
     #h = HTMLMatcher(source1, source2, accurate_mode)
     h = NoTagHTMLMatcher(source1, source2, accurate_mode)
-    return h.htmlDiff(addStylesheet)
+    return h.htmlDiff(True)
 
 def diffFiles(f1, f2, accurate_mode):
     # Open the files
@@ -251,7 +248,6 @@ def simplehtmldiff(source1, source2):
 
 class TextMatcher(HTMLMatcher):
 
-
     def set_seq1(self, a):
         SequenceMatcher.set_seq1(self, a.split('\n'))
 
@@ -288,6 +284,77 @@ class TextMatcher(HTMLMatcher):
             if line.startswith(' '):
                 line = '&nbsp;' + line[1:]
             out.write('<tt>%s</tt><br>\n' % line)
+
+def whitespacegen(spaces):
+    """
+    From a certain number of spaces, provide an html entity for non breaking
+    spaces in an html document.
+
+    @type spaces: integer
+    @param spaces: Number of html space entities to return as string
+    @return string containing html space entities (&nbsp;)
+    """
+    s = ""
+    for i in xrange(spaces):
+        s = s + "&nbsp;"
+    return s
+
+def span_to_whitespace(html_string, span):
+    """
+    Given an html string and a span tag name, parse the html and find
+    the document areas containing those pieces and then replace them
+    with nonbreaking whitespace html entities.
+
+    @type html_string: string
+    @param html_string: string of html to parse
+    @type span: string
+    @param string: the span class to parse for
+    @return: html string with specified span replaced with whitespace
+    """
+    start = "<span class=\"%s\">" % span
+    stop = "</span>"
+    sub_length = len(start) + len(stop)
+    while True:
+        try:
+            s = html_string.index(start)
+            f = html_string.index(stop, s) + 7
+        except ValueError:
+            # No more occurances of this span exist in the file.
+            break
+        
+        strip = html_string[s:f]
+        chars = whitespacegen(len(strip))
+        html_string = html_string.replace(strip, chars)
+    return html_string
+
+def gen_side_by_side(file_string):
+    """
+    Given an html file as a string, return a new html file with side by
+    side differences displayed in a single html file.
+    
+    @type file_string: string
+    @param file_string: string of html to convert
+    @return: string of html with side-by-side diffs
+    """
+    orig_div_start = """<div float: left; width: 45%; border-right: 1px solid black; padding-right: 5px; margin-right: 5px;">"""
+    new_div_start  = """<div float: right; width: 45%; padding-left: 5px; margin-left: 5px;">"""
+    div_end = """</div>"""
+    start, body, ending = split_html(file_string)
+    left_side = copy(body)
+    right_side = copy(body)
+    left = span_to_whitespace(left_side, "insert")
+    right = span_to_whitespace(right_side, "delete")
+    sbs_diff = start + orig_div_start + left + div_end + new_div_start + right + div_end + ending
+    return sbs_diff
+
+def split_html(html_string):
+    i = html_string.index("<body")
+    j = html_string.index(">", html_string.index("<body")) + 1
+    k = html_string.index("</body")
+    start = html_string[:j]
+    body = html_string[j:k]
+    ending = html_string[k:]
+    return start, body, ending
 
 def diff_files():
     command_name = "htmldiff"
@@ -327,7 +394,7 @@ def diff_files():
     accurate_mode = vars(options)['mode']
     input_file1 = args[0]
     input_file2 = args[1]
-    
+
     # Get the actual path
     path = split(abspath(input_file1))[0]
 
@@ -341,18 +408,30 @@ def diff_files():
 
     if output_file == None:
         output_file = 'diff_%s'%split(abspath(input_file1))[1]
+        sbs_file = 'sbs_diff_%s'%split(abspath(input_file1))[1]
+    else:
+        sbs_file = 'diff_%s' % output
 
     output = join(path, output_file)
+    sbs_output = join(path, sbs_file)
     try:
         diffed_html = diffFiles(input_file1, input_file2, accurate_mode)
+        sbs_html = gen_side_by_side(diffed_html)
     except Exception, ex:
         print ex
         exit()
 
+    print sbs_output
+    print output
     try:
+
         dhtml = open(output, 'w')
         dhtml.write(diffed_html)
         dhtml.close()
+        
+        sbs = open(sbs_output, 'w')
+        sbs.write(sbs_html)
+        sbs.close()
     except Exception, ex:
         print ex
         exit()
