@@ -336,15 +336,17 @@ def gen_side_by_side(file_string):
     @param file_string: string of html to convert
     @return: string of html with side-by-side diffs
     """
-    orig_div_start = """<div float: left; width: 45%; border-right: 1px solid black; padding-right: 5px; margin-right: 5px;">"""
-    new_div_start  = """<div float: right; width: 45%; padding-left: 5px; margin-left: 5px;">"""
+    
+    container_div = """<div id="container style="width: 100%;">"""
+    orig_div_start = """<div id="left" style="clear: left; display: inline; float: left; width: 48%; border-right: 1px solid black; padding-right: 15px; margin-right: 5px;">"""
+    new_div_start  = """<div id="right" style="float: right; width: 48%; display: inline; padding-left: 5px; padding-right: 10px;">"""
     div_end = """</div>"""
     start, body, ending = split_html(file_string)
     left_side = copy(body)
     right_side = copy(body)
     left = span_to_whitespace(left_side, "insert")
     right = span_to_whitespace(right_side, "delete")
-    sbs_diff = start + orig_div_start + left + div_end + new_div_start + right + div_end + ending
+    sbs_diff = start + container_div + orig_div_start + left + div_end + new_div_start + right + div_end + div_end + ending
     return sbs_diff
 
 def split_html(html_string):
