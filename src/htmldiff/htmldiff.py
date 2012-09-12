@@ -301,7 +301,7 @@ def whitespacegen(spaces):
     s = "&nbsp;&nbsp;&nbsp;&nbsp; " * int(words)
 
     #s = " " * spaces
-    s = "<span style=\"white-space: pre-wrap; text-decoration: none;\">" + s + "</span>"
+    s = "<span style=\"white-space: pre-wrap; text-decoration: none !important;\">" + s + "</span>"
     return s
 
 def span_to_whitespace(html_string, span):
@@ -328,12 +328,7 @@ def span_to_whitespace(html_string, span):
 
         strip = html_string[s:f]
         stripped = strip_tags(strip)
-        nbsp = get_spacing(stripped, "times new roman")
-        #nbsp = len(strip) - sub_length
-        cr = strip.count('</p>')
-        cr = "<br />" * cr
-        chars = whitespacegen(nbsp)
-        chars = chars + cr
+        chars = whitespacegen(get_spacing(stripped, "times new roman"))
         html_string = html_string.replace(strip, chars)
     return html_string
 

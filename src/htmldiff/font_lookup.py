@@ -63,6 +63,7 @@ times_new_roman = {
 '8':41,
 '9':41,
 ' ':20,
+'non-breaking-space':18,
 }
 fonts = {
 'times new roman': times_new_roman,
@@ -97,6 +98,6 @@ def get_spacing(string, font_type):
         ws = occurs * lookup_table[character]
         whitespace = whitespace + ws
     
-    spaces = whitespace/lookup_table[' ']
+    spaces = whitespace/lookup_table['non-breaking-space']
     spaces = round(spaces, 0)
     return int(spaces)
