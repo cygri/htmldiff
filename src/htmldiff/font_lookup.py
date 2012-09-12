@@ -1,30 +1,30 @@
-# Tool for generating whitespace with more accuracy.
+# Tool for generating whitespace with *more accuracy.
 times_new_roman = {
 'a':36,
-'b':40.5,
+'b':41,
 'c':36,
-'d':40.5,
+'d':41,
 'e':36,
 'f':35,
-'g':40.5,
-'h':40.5,
-'i':22.5,
-'j':22.5,
-'k':40.5,
-'l':22.5,
-'m':63.5,
-'n':40.5,
-'o':40.5,
-'p':40.5,
-'q':40.5,
+'g':41,
+'h':41,
+'i':23,
+'j':23,
+'k':41,
+'l':23,
+'m':64,
+'n':41,
+'o':41,
+'p':41,
+'q':41,
 'r':27,
 's':32,
-'t':22.5,
-'u':40.5,
-'v':40.5,
+'t':23,
+'u':41,
+'v':41,
 'w':58,
-'x':40.5,
-'y':50.5,
+'x':41,
+'y':51,
 'z':36,
 'A':59,
 'B':50,
@@ -34,16 +34,16 @@ times_new_roman = {
 'F':45,
 'G':59,
 'H':59,
-'I':26.5,
+'I':27,
 'J':32,
 'K':58,
-'L':49.5,
+'L':50,
 'M':72,
 'N':58,
 'O':58,
 'P':45,
 'Q':58,
-'R':54.5,
+'R':55,
 'S':45,
 'T':50,
 'U':58,
@@ -51,18 +51,18 @@ times_new_roman = {
 'W':76,
 'X':58,
 'Y':58,
-'Z':49.5,
-'0':40.5,
-'1':40.5,
-'2':40.5,
-'3':40.5,
-'4':40.5,
-'5':40.5,
-'6':40.5,
-'7':40.5,
-'8':40.5,
-'9':40.5,
-' ':20.2,
+'Z':50,
+'0':41,
+'1':41,
+'2':41,
+'3':41,
+'4':41,
+'5':41,
+'6':41,
+'7':41,
+'8':41,
+'9':41,
+' ':20,
 }
 fonts = {
 'times new roman': times_new_roman,
@@ -73,7 +73,12 @@ def get_spacing(string, font_type):
     appropriate whitespace than would be normally generated from just
     counting characters and replacing with spaces. Currently only has a
     lookup table for Times New Roman. Possible to add support for others
-    at a later point just by adding them to the font dictionary
+    at a later point just by adding them to the font dictionary. The
+    font sizes are an arbitrary unit and merely approximates.
+    
+    This will get things closer, but outside of test rendering each and
+    manually calculating space and doing the conversion with that, this
+    at least works to get you close.
     
     @type string: string
     @param string: a string to calculate whitespace for
@@ -92,8 +97,6 @@ def get_spacing(string, font_type):
         ws = occurs * lookup_table[character]
         whitespace = whitespace + ws
     
-    #print "Total Whitespace: %s" % str(whitespace)
     spaces = whitespace/lookup_table[' ']
-    #print "Estimated space characters: %s" % str(spaces)
-    #print "As Int: %s" % str(int(spaces))
+    spaces = round(spaces, 0)
     return int(spaces)
