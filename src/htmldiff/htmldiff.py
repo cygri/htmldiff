@@ -7,10 +7,66 @@ from difflib import SequenceMatcher
 import cgi
 import HTMLParser
 import sys
+from font_lookup import get_spacing
+
 try:
     from cStringIO import StringIO
 except ImportError:
     from StringIO import StringIO
+"""
+class TagStrip(HTMLParser.HTMLParser):
+
+    Subclass of HTMLParser used to strip html tags from strings
+
+    def __init__(self):
+        self.reset()
+        self.fed = []
+
+    def handle_data(self, s):
+        self.fed.append(s)
+
+    def get_stripped_string(self):
+        return ''.join(self.fed)
+"""
+
+class TagStrip(HTMLParser.HTMLParser):
+    """
+    Subclass of HTMLParser used to strip html tags from strings
+    """
+    def __init__(self):
+        self.reset()
+        self.f = []
+
+    def handle_data(self, d):
+        self.f.append(d)
+
+    def handle_charref(self, n):
+        c = int(n[1:], 16) if n[0] in (u'x', u'X') else int(n)
+        self.f.append(unichr(c))
+
+    def handle_entityref(self, n):
+        c = htmlentitydefs.name2codepoint[n]
+        self.f.append(unichr(c))
+
+    def get_stripped_string(self):
+        return u''.join(self.f)
+
+def strip_tags(html_string):
+    """
+    Remove all HTML tags from a given string of html
+
+    @type html_string: string
+    @param html_string: string of html
+    @return: intial string stripped of html tags
+    """
+    cleanup_list = ["<a>", "</a>", "<p>", "</p>"]
+    st = TagStrip()
+    st.feed(html_string)
+    stripped = st.get_stripped_string()
+    # strip sometimes leaves artifacts
+    for item in cleanup_list:
+        stripped = stripped.replace(item, "")
+    return stripped
 
 def htmlDecode(s):
     h = HTMLParser.HTMLParser()
@@ -217,35 +273,6 @@ def diffFiles(f1, f2, accurate_mode):
     source2 = source2.encode("utf-8")
     return htmldiff(source1, source2, True, accurate_mode)
 
-class SimpleHTMLMatcher(HTMLMatcher):
-    """
-    Like HTMLMatcher, but returns a simpler diff
-    """
-    def startInsertText(self):
-        return '+['
-    def endInsertText(self):
-        return ']'
-    def startDeleteText(self):
-        return '-['
-    def endDeleteText(self):
-        return ']'
-    def formatInsertTag(self, tag):
-        return '+[%s]' % tag
-    def formatDeleteTag(self, tag):
-        return '-[%s]' % tag
-
-def simplehtmldiff(source1, source2):
-    """
-    Simpler form of htmldiff; mostly for testing, like:
-
-        >>> simplehtmldiff('test1', 'test2')
-        '-[test1 ]+[test2 ]'
-        >>> simplehtmldiff('<b>Hello world!</b>', '<i>Hello you!</i>')
-        '-[<b>]+[<i>]<i> Hello -[world! ]-[</b>]+[you! ]+[</i>]</i> '
-    """
-    h = SimpleHTMLMatcher(source1, source2)
-    return h.htmlDiff()
-
 class TextMatcher(HTMLMatcher):
 
     def set_seq1(self, a):
@@ -294,9 +321,12 @@ def whitespacegen(spaces):
     @param spaces: Number of html space entities to return as string
     @return string containing html space entities (&nbsp;)
     """
-    s = ""
-    for i in xrange(spaces):
-        s = s + "&nbsp;"
+    # The average length of a word is 5 letters
+    words = spaces / 5
+    s = "&nbsp;&nbsp;&nbsp;&nbsp; " * int(words)
+
+    #s = " " * spaces
+    s = "<span style=\"white-space: pre-wrap;\">" + s + "</span>"
     return s
 
 def span_to_whitespace(html_string, span):
@@ -313,7 +343,6 @@ def span_to_whitespace(html_string, span):
     """
     start = "<span class=\"%s\">" % span
     stop = "</span>"
-    sub_length = len(start) + len(stop)
     while True:
         try:
             s = html_string.index(start)
@@ -323,9 +352,13 @@ def span_to_whitespace(html_string, span):
             break
 
         strip = html_string[s:f]
+        stripped = strip_tags(strip)
+        # strip_tags sometimes leaves artifacts
+        nbsp = get_spacing(stripped, "times new roman")
+        #nbsp = len(strip) - sub_length
         cr = strip.count('</p>')
         cr = "<br />" * cr
-        chars = whitespacegen(len(strip))
+        chars = whitespacegen(nbsp)
         chars = chars + cr
         html_string = html_string.replace(strip, chars)
     return html_string
@@ -341,8 +374,8 @@ def gen_side_by_side(file_string):
     """
 
     container_div = """<div id="container style="width: 100%;">"""
-    orig_div_start = """<div id="left" style="clear: left; display: inline; float: left; width: 48%; border-right: 1px solid black; padding-right: 15px; margin-right: 5px;">"""
-    new_div_start  = """<div id="right" style="float: right; width: 48%; display: inline; padding-left: 5px; padding-right: 10px;">"""
+    orig_div_start = """<div id="left" style="clear: left; display: inline; float: left; width: 48%; border-right: 1px solid black; padding: 10px; margin-right: 5px;">"""
+    new_div_start  = """<div id="right" style="float: right; width: 48%; display: inline; padding: 10px; margin-left: 5px;">"""
     div_end = """</div>"""
     start, body, ending = split_html(file_string)
     left_side = copy(body)
@@ -353,9 +386,23 @@ def gen_side_by_side(file_string):
     return sbs_diff
 
 def split_html(html_string):
-    i = html_string.index("<body")
-    j = html_string.index(">", html_string.index("<body")) + 1
-    k = html_string.index("</body")
+    """
+    Divides an html document into three seperate strings and returns
+    each of these. The first part is everything up to and including the
+    <body> tag. The next is everything inside of the body tags. The
+    third is everything outside of and including the </body> tag.
+
+    @type html_string: string
+    @param html_string: html document in string form
+    @ return: three strings start, body, and ending
+    """
+
+    try:
+        i = html_string.index("<body")
+        j = html_string.index(">", html_string.index("<body")) + 1
+        k = html_string.index("</body")
+    except ValueError:
+        raise Exception("This is not a full html document.")
     start = html_string[:j]
     body = html_string[j:k]
     ending = html_string[k:]
