@@ -13,11 +13,11 @@ try:
     from cStringIO import StringIO
 except ImportError:
     from StringIO import StringIO
-"""
+
 class TagStrip(HTMLParser.HTMLParser):
-
+    """
     Subclass of HTMLParser used to strip html tags from strings
-
+    """
     def __init__(self):
         self.reset()
         self.fed = []
@@ -27,29 +27,6 @@ class TagStrip(HTMLParser.HTMLParser):
 
     def get_stripped_string(self):
         return ''.join(self.fed)
-"""
-
-class TagStrip(HTMLParser.HTMLParser):
-    """
-    Subclass of HTMLParser used to strip html tags from strings
-    """
-    def __init__(self):
-        self.reset()
-        self.f = []
-
-    def handle_data(self, d):
-        self.f.append(d)
-
-    def handle_charref(self, n):
-        c = int(n[1:], 16) if n[0] in (u'x', u'X') else int(n)
-        self.f.append(unichr(c))
-
-    def handle_entityref(self, n):
-        c = htmlentitydefs.name2codepoint[n]
-        self.f.append(unichr(c))
-
-    def get_stripped_string(self):
-        return u''.join(self.f)
 
 def strip_tags(html_string):
     """
