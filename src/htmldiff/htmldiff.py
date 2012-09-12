@@ -36,13 +36,11 @@ def strip_tags(html_string):
     @param html_string: string of html
     @return: intial string stripped of html tags
     """
-    cleanup_list = ["<a>", "</a>", "<p>", "</p>"]
     st = TagStrip()
     st.feed(html_string)
     stripped = st.get_stripped_string()
     # strip sometimes leaves artifacts
-    for item in cleanup_list:
-        stripped = stripped.replace(item, "")
+    stripped = re.sub('<[^<]+?>', '', stripped)
     return stripped
 
 def htmlDecode(s):
