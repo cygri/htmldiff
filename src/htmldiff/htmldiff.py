@@ -8,7 +8,6 @@ import cgi
 import HTMLParser
 import sys
 from font_lookup import get_spacing
-
 try:
     from cStringIO import StringIO
 except ImportError:
@@ -28,6 +27,13 @@ class TagStrip(HTMLParser.HTMLParser):
     def get_stripped_string(self):
         return ''.join(self.fed)
 
+def strip_empty_links(html_string):
+    #string2 = re.compile('<a href=.*?\B&nbsp;\</a>')
+    #print re.findall(string2, html_string)
+    #print html_string
+    #string = re.sub('[<a href=].*[><span style="white-space: pre-wrap;">].*[</span></a>]', '', html_string)
+    return html_string
+
 def strip_tags(html_string):
     """
     Remove all HTML tags from a given string of html
@@ -39,8 +45,6 @@ def strip_tags(html_string):
     st = TagStrip()
     st.feed(html_string)
     stripped = st.get_stripped_string()
-    # strip sometimes leaves artifacts
-    stripped = re.sub('<[^<]+?>', '', stripped)
     return stripped
 
 def htmlDecode(s):
@@ -301,7 +305,7 @@ def whitespacegen(spaces):
     s = "&nbsp;&nbsp;&nbsp;&nbsp; " * int(words)
 
     #s = " " * spaces
-    s = "<span style=\"white-space: pre-wrap; text-decoration: none !important;\">" + s + "</span>"
+    s = "<span style=\"white-space: pre-wrap;\">" + s + "</span>"
     return s
 
 def span_to_whitespace(html_string, span):
@@ -343,13 +347,14 @@ def gen_side_by_side(file_string):
     """
 
     container_div = """<div id="container style="width: 100%;">"""
-    orig_div_start = """<div id="left" style="clear: left; display: inline; float: left; width: 48%; border-right: 1px solid black; padding: 10px; margin-right: 5px;">"""
-    new_div_start  = """<div id="right" style="float: right; width: 48%; display: inline; padding: 10px; margin-left: 5px;">"""
+    orig_div_start = """<div id="left" style="clear: left; display: inline; float: left; width: 47%; border-right: 1px solid black; padding: 10px;">"""
+    new_div_start  = """<div id="right" style="float: right; width: 47%; display: inline; padding: 10px;">"""
     div_end = """</div>"""
     start, body, ending = split_html(file_string)
     left_side = copy(body)
     right_side = copy(body)
     left = span_to_whitespace(left_side, "insert")
+    p = strip_empty_links(left)
     right = span_to_whitespace(right_side, "delete")
     sbs_diff = start + container_div + orig_div_start + left + div_end + new_div_start + right + div_end + div_end + ending
     return sbs_diff

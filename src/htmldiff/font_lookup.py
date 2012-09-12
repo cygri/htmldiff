@@ -63,7 +63,7 @@ times_new_roman = {
 '8':41,
 '9':41,
 ' ':20,
-'non-breaking-space':18,
+'non-breaking-space':15,
 }
 fonts = {
 'times new roman': times_new_roman,
