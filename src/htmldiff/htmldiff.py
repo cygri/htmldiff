@@ -328,7 +328,6 @@ def span_to_whitespace(html_string, span):
 
         strip = html_string[s:f]
         stripped = strip_tags(strip)
-        # strip_tags sometimes leaves artifacts
         nbsp = get_spacing(stripped, "times new roman")
         #nbsp = len(strip) - sub_length
         cr = strip.count('</p>')
