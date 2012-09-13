@@ -27,13 +27,6 @@ class TagStrip(HTMLParser.HTMLParser):
     def get_stripped_string(self):
         return ''.join(self.fed)
 
-def strip_empty_links(html_string):
-    #string2 = re.compile('<a href=.*?\B&nbsp;\</a>')
-    #print re.findall(string2, html_string)
-    #print html_string
-    #string = re.sub('[<a href=].*[><span style="white-space: pre-wrap;">].*[</span></a>]', '', html_string)
-    return html_string
-
 def strip_tags(html_string):
     """
     Remove all HTML tags from a given string of html
@@ -54,16 +47,31 @@ def htmlDecode(s):
 def htmlEncode(s, esc=cgi.escape):
     return esc(s, 1)
 
+########################################################################
+#                        Variables and Regex                           #
+########################################################################
 commentRE = re.compile('<!--.*?-->', re.S)
 tagRE = re.compile('<script.*?>.*?</script>|<.*?>', re.S)
 headRE = re.compile('<\s*head\s*>', re.S | re.I)
 wsRE = re.compile('^([ \n\r\t]|&nbsp;)+$')
 stopwords = ['I', 'a', 'about', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from', 'have', 'how', 'in', 'is', 'it', 'of', 'on', 'or', 'that', 'the', 'this', 'to', 'was', 'what', 'when', 'where', 'who', 'will', 'with']
 
-# Note: Just returning false here gives a generally more accurate,
-# but much slower and more noisy result.
+
 def isJunk(x):
-#    return False
+    """
+    Used for the faster but less accurate mode.  Original comment said:
+    
+    Note: Just returning false here gives a generally more accurate but
+    much shower and more noisy result.
+    
+    False is now set with the -a switch so this function always returns
+    the regex matches or lowercase.
+    
+    @type x: string
+    @param x: string to match against
+    @returns: regex matched or lowercased x
+    """
+    
     return wsRE.match(x) or x.lower() in stopwords
 
 class HTMLMatcher(SequenceMatcher):
@@ -240,17 +248,35 @@ def htmldiff(source1, source2, accurate_mode, addStylesheet=False):
     h = NoTagHTMLMatcher(source1, source2, accurate_mode)
     return h.htmlDiff(True)
 
+def diffStrings(orig, new, accurate_mode):
+    """
+    Given two strings of html, return a diffed string.
+    
+    @type orig: string
+    @param orig: original string for comparison
+    @type new: string
+    @param new: new string for comparision against original string
+    @type accurate_moode: boolean
+    @param accurate_moode: use accurate mode or not
+    @return: string containing diffed html
+    """
+    
+    # Decode the html entities and then encode to utf-8
+    orig = htmlDecode(orig)
+    orig = orig.encode("utf-8")
+    new = htmlDecode(new)
+    new = new.encode("utf-8")
+    return htmldiff(orig, new, True, accurate_mode)
+
 def diffFiles(f1, f2, accurate_mode):
+    """
+    Given two files, open them to variables and pass them to diffStrings
+    for diffing.
+    """
     # Open the files
     source1 = open(f1).read()
     source2 = open(f2).read()
-
-    # Decode the html entities and then encode to utf-8
-    source1 = htmlDecode(source1)
-    source1 = source1.encode("utf-8")
-    source2 = htmlDecode(source2)
-    source2 = source2.encode("utf-8")
-    return htmldiff(source1, source2, True, accurate_mode)
+    return diffStrings(source1, source2, accurate_mode)
 
 class TextMatcher(HTMLMatcher):
 
@@ -298,7 +324,8 @@ def whitespacegen(spaces):
 
     @type spaces: integer
     @param spaces: Number of html space entities to return as string
-    @return string containing html space entities (&nbsp;)
+    @return: string containing html space entities (&nbsp;) wrapped in
+             a html span that properly wraps the whitespace.
     """
     # The average length of a word is 5 letters
     words = spaces / 5
@@ -354,7 +381,6 @@ def gen_side_by_side(file_string):
     left_side = copy(body)
     right_side = copy(body)
     left = span_to_whitespace(left_side, "insert")
-    p = strip_empty_links(left)
     right = span_to_whitespace(right_side, "delete")
     sbs_diff = start + container_div + orig_div_start + left + div_end + new_div_start + right + div_end + div_end + ending
     return sbs_diff
@@ -382,7 +408,7 @@ def split_html(html_string):
     ending = html_string[k:]
     return start, body, ending
 
-def diff_files():
+def diff():
     command_name = "htmldiff"
     """
     Given two html files, create an output html diff of the two versions
@@ -462,7 +488,7 @@ def diff_files():
         exit()
 
 def main():
-    diff_files()
+    diff()
 
 if __name__=="__main__":
     main()
