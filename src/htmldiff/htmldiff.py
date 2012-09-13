@@ -41,6 +41,13 @@ def strip_tags(html_string):
     return stripped
 
 def htmlDecode(s):
+    """
+    Given a string of html, decode entities
+    
+    @type s: string
+    @param s: string of html to decode
+    @return: string of html with decoded entities
+    """
     h = HTMLParser.HTMLParser()
     return h.unescape(s)
 
@@ -272,6 +279,14 @@ def diffFiles(f1, f2, accurate_mode):
     """
     Given two files, open them to variables and pass them to diffStrings
     for diffing.
+    
+    @type f1: object
+    @param f1: initial file to diff against
+    @type f2: object
+    @param f2: new file to compare to f1
+    @type accurate_mode: boolean
+    @param accurate_mode: use accurate mode or not
+    @return: string containing diffed html from f1 and f2
     """
     # Open the files
     source1 = open(f1).read()
