@@ -444,6 +444,7 @@ def diff_files():
         sbs_file = 'diff_%s' % output
 
     output = join(path, output_file)
+
     try:
         diffed_html = diffFiles(input_file1, input_file2, accurate_mode)
         if sbs:
@@ -451,12 +452,11 @@ def diff_files():
     except Exception, ex:
         print ex
         exit()
-    try:
 
+    try:
         dhtml = open(output, 'w')
         dhtml.write(diffed_html)
         dhtml.close()
-
     except Exception, ex:
         print ex
         exit()
