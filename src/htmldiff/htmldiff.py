@@ -60,18 +60,18 @@ stopwords = ['I', 'a', 'about', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for
 def isJunk(x):
     """
     Used for the faster but less accurate mode.  Original comment said:
-    
+
     Note: Just returning false here gives a generally more accurate but
     much shower and more noisy result.
-    
+
     False is now set with the -a switch so this function always returns
     the regex matches or lowercase.
-    
+
     @type x: string
     @param x: string to match against
     @returns: regex matched or lowercased x
     """
-    
+
     return wsRE.match(x) or x.lower() in stopwords
 
 class HTMLMatcher(SequenceMatcher):
@@ -251,7 +251,7 @@ def htmldiff(source1, source2, accurate_mode, addStylesheet=False):
 def diffStrings(orig, new, accurate_mode):
     """
     Given two strings of html, return a diffed string.
-    
+
     @type orig: string
     @param orig: original string for comparison
     @type new: string
@@ -260,7 +260,7 @@ def diffStrings(orig, new, accurate_mode):
     @param accurate_moode: use accurate mode or not
     @return: string containing diffed html
     """
-    
+
     # Decode the html entities and then encode to utf-8
     orig = htmlDecode(orig)
     orig = orig.encode("utf-8")
