@@ -1,17 +1,22 @@
-from optparse import OptionParser
-from os.path import abspath, split, join
-from copy import copy
+"""
+Utility to do inline and side-by-side diffs of html files.
+"""
+# Standard Imports
 import os
 import re
-from difflib import SequenceMatcher
 import cgi
 import HTMLParser
 import sys
+from optparse import OptionParser
+from os.path import abspath, split, join
+from copy import copy
+from difflib import SequenceMatcher
 from font_lookup import get_spacing
 try:
     from cStringIO import StringIO
 except ImportError:
     from StringIO import StringIO
+
 
 class TagStrip(HTMLParser.HTMLParser):
     """
@@ -27,6 +32,7 @@ class TagStrip(HTMLParser.HTMLParser):
     def get_stripped_string(self):
         return ''.join(self.fed)
 
+
 def strip_tags(html_string):
     """
     Remove all HTML tags from a given string of html
@@ -40,16 +46,18 @@ def strip_tags(html_string):
     stripped = st.get_stripped_string()
     return stripped
 
+
 def htmlDecode(s):
     """
     Given a string of html, decode entities
-    
+
     @type s: string
     @param s: string of html to decode
     @return: string of html with decoded entities
     """
     h = HTMLParser.HTMLParser()
     return h.unescape(s)
+
 
 def htmlEncode(s, esc=cgi.escape):
     return esc(s, 1)
@@ -61,7 +69,39 @@ commentRE = re.compile('<!--.*?-->', re.S)
 tagRE = re.compile('<script.*?>.*?</script>|<.*?>', re.S)
 headRE = re.compile('<\s*head\s*>', re.S | re.I)
 wsRE = re.compile('^([ \n\r\t]|&nbsp;)+$')
-stopwords = ['I', 'a', 'about', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from', 'have', 'how', 'in', 'is', 'it', 'of', 'on', 'or', 'that', 'the', 'this', 'to', 'was', 'what', 'when', 'where', 'who', 'will', 'with']
+stopwords = [
+    'I',
+    'a',
+    'about',
+    'an',
+    'and',
+    'are',
+    'as',
+    'at',
+    'be',
+    'by',
+    'for',
+    'from',
+    'have',
+    'how',
+    'in',
+    'is',
+    'it',
+    'of',
+    'on',
+    'or',
+    'that',
+    'the',
+    'this',
+    'to',
+    'was',
+    'what',
+    'when',
+    'where',
+    'who',
+    'will',
+    'with'
+]
 
 
 def isJunk(x):
@@ -81,13 +121,26 @@ def isJunk(x):
 
     return wsRE.match(x) or x.lower() in stopwords
 
+
 class HTMLMatcher(SequenceMatcher):
 
     def __init__(self, source1, source2, accurate_mode):
-        if accurate_mode==False:
-            SequenceMatcher.__init__(self, isJunk, source1, source2, False)
-        if accurate_mode==True:
-            SequenceMatcher.__init__(self, False, source1, source2, False)
+        if accurate_mode == False:
+            SequenceMatcher.__init__(
+                self,
+                isJunk,
+                source1,
+                source2,
+                False
+            )
+        if accurate_mode == True:
+            SequenceMatcher.__init__(
+                self,
+                False,
+                source1,
+                source2,
+                False
+            )
 
     def set_seq1(self, a):
         SequenceMatcher.set_seq1(self, self.splitHTML(a))
@@ -234,11 +287,17 @@ class HTMLMatcher(SequenceMatcher):
     def formatDeleteTag(self, tag):
         return '<span class="tagDelete">delete: <tt>%s</tt></span>' % htmlEncode(tag)
 
+
 class NoTagHTMLMatcher(HTMLMatcher):
+    """
+    I forgot what I had this in here for
+    """
     def formatInsertTag(self, tag):
         return ''
+
     def formatDeleteTag(self, tag):
         return ''
+
 
 def htmldiff(source1, source2, accurate_mode, addStylesheet=False):
     """
@@ -254,6 +313,7 @@ def htmldiff(source1, source2, accurate_mode, addStylesheet=False):
     #h = HTMLMatcher(source1, source2, accurate_mode)
     h = NoTagHTMLMatcher(source1, source2, accurate_mode)
     return h.htmlDiff(True)
+
 
 def diffStrings(orig, new, accurate_mode):
     """
@@ -275,11 +335,12 @@ def diffStrings(orig, new, accurate_mode):
     new = new.encode("utf-8")
     return htmldiff(orig, new, True, accurate_mode)
 
+
 def diffFiles(f1, f2, accurate_mode):
     """
     Given two files, open them to variables and pass them to diffStrings
     for diffing.
-    
+
     @type f1: object
     @param f1: initial file to diff against
     @type f2: object
@@ -292,6 +353,7 @@ def diffFiles(f1, f2, accurate_mode):
     source1 = open(f1).read()
     source2 = open(f2).read()
     return diffStrings(source1, source2, accurate_mode)
+
 
 class TextMatcher(HTMLMatcher):
 
@@ -332,6 +394,7 @@ class TextMatcher(HTMLMatcher):
                 line = '&nbsp;' + line[1:]
             out.write('<tt>%s</tt><br>\n' % line)
 
+
 def whitespacegen(spaces):
     """
     From a certain number of spaces, provide an html entity for non breaking
@@ -349,6 +412,7 @@ def whitespacegen(spaces):
     #s = " " * spaces
     s = "<span style=\"white-space: pre-wrap;\">" + s + "</span>"
     return s
+
 
 def span_to_whitespace(html_string, span):
     """
@@ -378,6 +442,7 @@ def span_to_whitespace(html_string, span):
         html_string = html_string.replace(strip, chars)
     return html_string
 
+
 def gen_side_by_side(file_string):
     """
     Given an html file as a string, return a new html file with side by
@@ -390,7 +455,7 @@ def gen_side_by_side(file_string):
 
     container_div = """<div id="container style="width: 100%;">"""
     orig_div_start = """<div id="left" style="clear: left; display: inline; float: left; width: 47%; border-right: 1px solid black; padding: 10px;">"""
-    new_div_start  = """<div id="right" style="float: right; width: 47%; display: inline; padding: 10px;">"""
+    new_div_start = """<div id="right" style="float: right; width: 47%; display: inline; padding: 10px;">"""
     div_end = """</div>"""
     start, body, ending = split_html(file_string)
     left_side = copy(body)
@@ -399,6 +464,7 @@ def gen_side_by_side(file_string):
     right = span_to_whitespace(right_side, "delete")
     sbs_diff = start + container_div + orig_div_start + left + div_end + new_div_start + right + div_end + div_end + ending
     return sbs_diff
+
 
 def split_html(html_string):
     """
@@ -423,6 +489,7 @@ def split_html(html_string):
     ending = html_string[k:]
     return start, body, ending
 
+
 def diff():
     command_name = "htmldiff"
     """
@@ -446,13 +513,31 @@ def diff():
     -use
         Will print this message.""" % command_name
 
-    parser = OptionParser(usage = use)
-    parser.add_option('-o', '--output_file', action='store', dest='output_file', default=None,
-                      help='[OPTIONAL] Name of output file')
-    parser.add_option('-a', '--accurate-mode', help='Use accurate mode instead of risky mode', dest='mode',
-                      default=False, action='store_true')
-    parser.add_option('-s', '--side-by-side', help='generate a side-by-side comparision instead of inline', dest='sbs',
-                      default=False, action='store_true')
+    parser = OptionParser(usage=use)
+    parser.add_option(
+        '-o',
+        '--output_file',
+        action='store',
+        dest='output_file',
+        default=None,
+        help='[OPTIONAL] Name of output file'
+    )
+    parser.add_option(
+        '-a',
+        '--accurate-mode',
+        help='Use accurate mode instead of risky mode',
+        dest='mode',
+        default=False,
+        action='store_true'
+    )
+    parser.add_option(
+        '-s',
+        '--side-by-side',
+        help='generate a side-by-side comparision instead of inline',
+        dest='sbs',
+        default=False,
+        action='store_true'
+    )
 
     (options, args) = parser.parse_args()
     if len(args) < 2:
@@ -472,15 +557,15 @@ def diff():
     path = split(abspath(input_file1))[0]
 
     if not os.path.exists(input_file1):
-        print "Error: could not find the specified file. Please check your filename and path."
+        print 'Error: could not find specified file: %s' % input_file_1
         exit()
 
     if not os.path.exists(input_file2):
-        print "Error: could not find the specified file. Please check your filename and path."
+        print 'Error: could not find specified file: %s' % input_file_2
         exit()
 
     if output_file == None:
-        output_file = 'diff_%s'%split(abspath(input_file1))[1]
+        output_file = 'diff_%s' % split(abspath(input_file1))[1]
     else:
         sbs_file = 'diff_%s' % output
 
@@ -502,8 +587,9 @@ def diff():
         print ex
         exit()
 
+
 def main():
     diff()
 
-if __name__=="__main__":
+if __name__ == "__main__":
     main()
