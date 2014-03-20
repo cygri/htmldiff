@@ -192,7 +192,7 @@ class HTMLMatcher(SequenceMatcher):
         html = out.getvalue()
         out.close()
         if addStylesheet:
-            html = self.addStylesheet(html, self.stylesheet())
+            html = self.addStylesheet(html, self.stylesheet)
         return html
 
     def isInvisibleChange(self, seq1, seq2):
@@ -246,31 +246,36 @@ class HTMLMatcher(SequenceMatcher):
             out.write(s)
             out.write(self.endInsertText())
 
+    @property
     def stylesheet(self):
-#         return '''
-# .insert { background-color: #aaffaa }
-# .delete { background-color: #ff8888; text-decoration: line-through }
-# .tagInsert { background-color: #007700; color: #ffffff }
-# .tagDelete { background-color: #770000; color: #ffffff }
-# '''
         return (
-            '.insert {background-color: #aaffaa}\n'
+            '.insert {\n\tbackground-color: #AFA\n}\n'
             '.delete {\n'
-            '\tbackground-color: #ff8888;\n'
+            '\tbackground-color: #F88;\n'
             '\ttext-decoration: line-through;\n'
             '}\n'
-            '.tagInsert {background-color: #007700; color: #ffffff}\n'
-            '.tagDelete {background-color: #770000; color: #ffffff}\n'
+            '.tagInsert {\n\tbackground-color: #070;\n\tcolor: #FFF\n}\n'
+            '.tagDelete {\n\tbackground-color: #700;\n\tcolor: #FFF\n}\n'
         )
 
-    def addStylesheet(self, html, ss):
+    def addStylesheet(self, html, stylesheet):
+        """
+        Add the stylesheet to the given html strings header. Attempt to find
+        the head tag and insert it after it, but if it doesn't exist then
+        insert at the beginning of the string.
+
+        :type html: str
+        :param html: string of html text to add the stylesheet to
+        :type stylesheet: str
+        :param stylesheet: css stylesheet to include in document header
+        :returns: modified html string with stylesheet added to the header
+        """
         match = headRE.search(html)
-        if match:
-            pos = match.end()
-        else:
-            pos = 0
-        return ('%s<style type="text/css"><!--\n%s\n--></style>%s'
-                % (html[:pos], ss, html[pos:]))
+        pos = match.end() if match else 0
+
+        # Note: The sheet used to be commented out, but I'm not sure why
+        return ('%s\n<style type="text/css">\n%s</style>%s'
+                % (html[:pos], stylesheet, html[pos:]))
 
     def startInsertText(self):
         return '<span class="insert">'
@@ -380,7 +385,7 @@ class TextMatcher(HTMLMatcher):
         html = out.getvalue()
         out.close()
         if addStylesheet:
-            html = self.addStylesheet(html, self.stylesheet())
+            html = self.addStylesheet(html, self.stylesheet)
         return html
 
     def writeLines(self, lines, out):
