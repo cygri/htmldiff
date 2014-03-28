@@ -1,5 +1,7 @@
 """
-Utility to do inline and side-by-side diffs of html files.
+.. module:: htmldiff.htmldiff
+:synopsis: Utility to do inline and side-by-side diffs of html files.
+.. moduleauthor:: Ian Bicking, Brant Watson <brant.watson@propylon.com>
 """
 # Standard Imports
 import os
@@ -514,15 +516,18 @@ def split_html(html_string):
 
 
 def diff():
-    command_name = "htmldiff"
+    command_name = "diff_html"
     """
     Given two html files, create an output html diff of the two versions
     showing the differences between them.
     """
     use = """%s INPUT_FILE1 INPUT_FILE2 [-o OUTPUT_FILE]
 
-    INPUT_FILE
-        This is the master document to read in and be converted to named styles
+    INPUT_FILE1
+        First file to diff from
+
+    INPUT_FILE2
+        File to diff against
 
     -o --output OUTPUT_FILE
         [Optional] Specify a custom filename for output
@@ -604,13 +609,11 @@ def diff():
         dhtml = open(output, 'w')
         dhtml.write(diffed_html)
         dhtml.close()
+        print('Wrote file diff to %s' % output)
     except Exception, ex:
         print ex
         exit()
 
 
-def main():
-    diff()
-
 if __name__ == "__main__":
-    main()
+    diff()

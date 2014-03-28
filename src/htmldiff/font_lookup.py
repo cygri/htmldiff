@@ -1,4 +1,10 @@
-# Tool for generating whitespace with *more accuracy.
+"""
+.. module:: htmldiff.fontlookup
+:synopsis: Terrible hack to generate whitespace with *more accuracy.
+.. moduleauthor:: Brant Watson <brant.watson@propylon.com>
+"""
+
+#  Default
 times_new_roman = {
     'a': 36,
     'b': 41,
