@@ -14,7 +14,7 @@ a python virtual environment is beyond the scope of this document
 but I'd recommend a quick google for virtualenvwrapper as it
 makes managing these much easier.
 
-To build a source package::
+To build a source package which gets placed in the dist subfolder::
 
     $ python setup.py sdist
 
@@ -25,6 +25,10 @@ To install into your current environment::
 Or via pip::
 
     $ pip install .
+
+Pip may also be used to install a built package::
+
+    $ pip install htmldiff-1a.0.0.dev4.tar.gz
 
 
 Usage
