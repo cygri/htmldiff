@@ -285,8 +285,10 @@ if __name__ == '__main__':
         print "Usage: %s file1 file2" % sys.argv[0]
         print "or to test: %s test" % sys.argv[0]
     elif sys.argv[1] == 'test' and not sys.argv[2:]:
-        import doctest
-        doctest.testmod(raise_on_error=True, report=True)
+        import doctest, sys
+        results = doctest.testmod()
+        if results.failed > 0:
+            sys.exit(1)
     else:
         print diffFiles(sys.argv[1], sys.argv[2])
     
