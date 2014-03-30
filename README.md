@@ -1,5 +1,7 @@
 # htmldiff.py
 
+[![Build Status](https://secure.travis-ci.org/edsu/htmldiff.png)](http://travis-ci.org/edsu/htmldiff)
+
 Usage: `htmldiff version1.html version2.html > diff.html`
 
 htmldiff outputs HTML that shows the differences in text between
@@ -40,6 +42,7 @@ this slightly better, at the price of less speed and more noise.
 * Allow diffing only of a given section by specifying an `id`
 * Allow input by URL
 * Make a web service
+* Get tests working again.
 
 ## License
 
