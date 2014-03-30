@@ -42,6 +42,7 @@ this slightly better, at the price of less speed and more noise.
 * Allow diffing only of a given section by specifying an `id`
 * Allow input by URL
 * Make a web service
+* Get tests working again.
 
 ## License
 
