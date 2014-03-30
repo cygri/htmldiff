@@ -1,5 +1,7 @@
 # htmldiff.py
 
+[![Build Status](https://secure.travis-ci.org/edsu/htmldiff.png)](http://travis-ci.org/edsu/htmldiff)
+
 Usage: `htmldiff version1.html version2.html > diff.html`
 
 htmldiff outputs HTML that shows the differences in text between
