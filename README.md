@@ -51,3 +51,5 @@ All options:
  * -o --output OUTPUT_FILE [Optional] Specify a custom output file
  * -h --help  - Prints command line help
 
+Note: I'm looking for a better command line entry point name than "diff_html" so I'm
+open to suggestions here.
