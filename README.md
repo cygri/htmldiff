@@ -28,7 +28,7 @@ Or via pip::
 
 Pip may also be used to install a built package::
 
-    $ pip install htmldiff-1a.0.0.dev4.tar.gz
+    $ pip install htmldiff-1a.0.0.dev5.tar.gz
 
 
 Usage
