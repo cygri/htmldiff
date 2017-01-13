@@ -4,15 +4,12 @@
 .. moduleauthor:: Ian Bicking, Brant Watson <brant.watson@propylon.com>
 """
 # Standard Imports
-import argparse
 import cgi
 import HTMLParser
-import os
-import pkg_resources
+import logging
 import re
 from copy import copy
 from difflib import SequenceMatcher
-from os.path import abspath, split
 try:
     from cStringIO import StringIO
 except ImportError:
@@ -21,15 +18,7 @@ except ImportError:
 # HtmlDiff
 from font_lookup import get_spacing
 
-# Setup the version string globally
-try:
-    pkg_version = "%(prog)s {0}".format(
-        pkg_resources.get_distribution("wwe").version
-    )
-except pkg_resources.DistributionNotFound:
-    pkg_version = '%(prog)s Development'
-except Exception:
-    pkg_version = '%(prog)s Unknown'
+LOG = logging.getLogger(__name__)
 
 
 class TagStrip(HTMLParser.HTMLParser):
@@ -61,7 +50,7 @@ def strip_tags(html_string):
     return stripped
 
 
-def htmlDecode(s):
+def html_decode(s):
     """
     Given a string of html, decode entities
 
@@ -73,7 +62,7 @@ def htmlDecode(s):
     return h.unescape(s)
 
 
-def htmlEncode(s, esc=cgi.escape):
+def html_encode(s, esc=cgi.escape):
     return esc(s, 1)
 
 ########################################################################
@@ -83,6 +72,9 @@ commentRE = re.compile('<!--.*?-->', re.S)
 tagRE = re.compile('<script.*?>.*?</script>|<.*?>', re.S)
 headRE = re.compile('<\s*head\s*>', re.S | re.I)
 wsRE = re.compile('^([ \n\r\t]|&nbsp;)+$')
+split_re = re.compile(
+    r'([^ \n\r\t,.&;/#=<>()-]+|(?:[ \n\r\t]|&nbsp;)+|[,.&;/#=<>()-])'
+)
 stopwords = frozenset((
     'I',
     'a',
@@ -118,12 +110,12 @@ stopwords = frozenset((
 ))
 
 
-def isJunk(x):
+def is_junk(x):
     """
     Used for the faster but less accurate mode.  Original comment said:
 
     Note: Just returning false here gives a generally more accurate but
-    much shower and more noisy result.
+    much slower and more noisy result.
 
     False is now set with the -a switch so this function always returns
     the regex matches or lowercase.
@@ -140,17 +132,17 @@ class HTMLMatcher(SequenceMatcher):
 
     def __init__(self, source1, source2, accurate_mode):
         if accurate_mode is False:
-            SequenceMatcher.__init__(self, isJunk, source1, source2, False)
+            SequenceMatcher.__init__(self, is_junk, source1, source2, False)
         if accurate_mode is True:
             SequenceMatcher.__init__(self, False, source1, source2, False)
 
     def set_seq1(self, a):
-        SequenceMatcher.set_seq1(self, self.splitHTML(a))
+        SequenceMatcher.set_seq1(self, self.split_html(a))
 
     def set_seq2(self, b):
-        SequenceMatcher.set_seq2(self, self.splitHTML(b))
+        SequenceMatcher.set_seq2(self, self.split_html(b))
 
-    def splitTags(self, t):
+    def split_tags(self, t):
         result = []
         pos = 0
         while 1:
@@ -163,22 +155,21 @@ class HTMLMatcher(SequenceMatcher):
             pos = match.end()
         return result
 
-    def splitWords(self, t):
-        exp = r'([^ \n\r\t,.&;/#=<>()-]+|(?:[ \n\r\t]|&nbsp;)+|[,.&;/#=<>()-])'
-        return re.findall(exp, t)
+    def split_words(self, t):
+        return split_re.findall(t)
 
-    def splitHTML(self, t):
+    def split_html(self, t):
         t = commentRE.sub('', t)
-        r = self.splitTags(t)
+        r = self.split_tags(t)
         result = []
         for item in r:
             if item.startswith('<'):
                 result.append(item)
             else:
-                result.extend(self.splitWords(item))
+                result.extend(self.split_words(item))
         return result
 
-    def htmlDiff(self, addStylesheet=True):
+    def diff_html(self, add_stylesheet=True):
         opcodes = self.get_opcodes()
         a = self.a
         b = self.b
@@ -188,23 +179,23 @@ class HTMLMatcher(SequenceMatcher):
                 for item in a[i1:i2]:
                     out.write(item)
             if tag == 'delete':
-                self.textDelete(a[i1:i2], out)
+                self.text_delete(a[i1:i2], out)
             if tag == 'insert':
-                self.textInsert(b[j1:j2], out)
+                self.text_insert(b[j1:j2], out)
             if tag == 'replace':
-                if (self.isInvisibleChange(a[i1:i2], b[j1:j2])):
+                if (self.is_invisible_change(a[i1:i2], b[j1:j2])):
                     for item in b[j1:j2]:
                         out.write(item)
                 else:
-                    self.textDelete(a[i1:i2], out)
-                    self.textInsert(b[j1:j2], out)
+                    self.text_delete(a[i1:i2], out)
+                    self.text_insert(b[j1:j2], out)
         html = out.getvalue()
         out.close()
-        if addStylesheet:
-            html = self.addStylesheet(html, self.stylesheet)
+        if add_stylesheet:
+            html = self.add_stylesheet(html, self.stylesheet)
         return html
 
-    def isInvisibleChange(self, seq1, seq2):
+    def is_invisible_change(self, seq1, seq2):
         if len(seq1) != len(seq2):
             return False
         for i in range(0, len(seq1)):
@@ -216,44 +207,44 @@ class HTMLMatcher(SequenceMatcher):
                 return False
         return True
 
-    def textDelete(self, lst, out):
+    def text_delete(self, lst, out):
         text = ''
         for item in lst:
             if item.startswith('<'):
-                self.outDelete(text, out)
+                self.out_delete(text, out)
                 text = ''
-                out.write(self.formatDeleteTag(item))
+                out.write(self.format_delete_tag(item))
             else:
                 text += item
-        self.outDelete(text, out)
+        self.out_delete(text, out)
 
-    def textInsert(self, lst, out):
+    def text_insert(self, lst, out):
         text = ''
         for item in lst:
             if item.startswith('<'):
-                self.outInsert(text, out)
+                self.out_insert(text, out)
                 text = ''
-                out.write(self.formatInsertTag(item))
+                out.write(self.format_insert_tag(item))
                 out.write(item)
             else:
                 text += item
-        self.outInsert(text, out)
+        self.out_insert(text, out)
 
-    def outDelete(self, s, out):
+    def out_delete(self, s, out):
         if s.strip() == '':
             out.write(s)
         else:
-            out.write(self.startDeleteText())
+            out.write(self.start_delete_text)
             out.write(s)
-            out.write(self.endDeleteText())
+            out.write(self.end_span_text)
 
-    def outInsert(self, s, out):
+    def out_insert(self, s, out):
         if s.strip() == '':
             out.write(s)
         else:
-            out.write(self.startInsertText())
+            out.write(self.start_insert_text)
             out.write(s)
-            out.write(self.endInsertText())
+            out.write(self.end_span_text)
 
     @property
     def stylesheet(self):
@@ -267,7 +258,7 @@ class HTMLMatcher(SequenceMatcher):
             '.tagDelete {\n\tbackground-color: #700;\n\tcolor: #FFF\n}\n'
         )
 
-    def addStylesheet(self, html, stylesheet):
+    def add_stylesheet(self, html, stylesheet):
         """
         Add the stylesheet to the given html strings header. Attempt to find
         the head tag and insert it after it, but if it doesn't exist then
@@ -286,47 +277,79 @@ class HTMLMatcher(SequenceMatcher):
         return ('%s\n<style type="text/css">\n%s</style>%s'
                 % (html[:pos], stylesheet, html[pos:]))
 
-    def startInsertText(self):
-        return '<span class="insert">'
+    start_insert_text = '<span class="insert">'
+    end_span_text = '</span>'
+    start_delete_text = '<span class="delete">'
 
-    def endInsertText(self):
-        return '</span>'
-
-    def startDeleteText(self):
-        return '<span class="delete">'
-
-    def endDeleteText(self):
-        return '</span>'
-
-    def formatInsertTag(self, tag):
+    def format_insert_tag(self, tag):
         return ('<span class="tagInsert">insert: <tt>%s</tt>'
-                '</span>' % htmlEncode(tag))
+                '</span>' % html_encode(tag))
 
-    def formatDeleteTag(self, tag):
+    def format_delete_tag(self, tag):
         return ('<span class="tagDelete">delete: <tt>%s</tt>'
-                '</span>' % htmlEncode(tag))
+                '</span>' % html_encode(tag))
 
 
 class NoTagHTMLMatcher(HTMLMatcher):
     """I forgot what I had this in here for"""
-    def formatInsertTag(self, tag):
+    def format_insert_tag(self, tag):
         return ''
 
-    def formatDeleteTag(self, tag):
+    def format_delete_tag(self, tag):
         return ''
 
 
-def htmldiff(source1, source2, accurate_mode, addStylesheet=False):
+class TextMatcher(HTMLMatcher):
+
+    def set_seq1(self, a):
+        SequenceMatcher.set_seq1(self, a.split('\n'))
+
+    def set_seq2(self, b):
+        SequenceMatcher.set_seq2(self, b.split('\n'))
+
+    def diff_html(self, add_stylesheet=False):
+        opcodes = self.get_opcodes()
+        a = self.a
+        b = self.b
+        out = StringIO()
+        for tag, i1, i2, j1, j2 in opcodes:
+            if tag == 'equal':
+                self.writeLines(a[i1:i2], out)
+            if tag == 'delete' or tag == 'replace':
+                out.write(self.start_delete_text)
+                self.writeLines(a[i1:i2], out)
+                out.write(self.end_span_text)
+            if tag == 'insert' or tag == 'replace':
+                out.write(self.start_insert_text)
+                self.writeLines(b[j1:j2], out)
+                out.write(self.end_span_text)
+        html = out.getvalue()
+        out.close()
+        if add_stylesheet:
+            html = self.add_stylesheet(html, self.stylesheet)
+        return html
+
+    def writeLines(self, lines, out):
+        for line in lines:
+            line = html_encode(line)
+            line = line.replace('  ', '&nbsp; ')
+            line = line.replace('\t', '&nbsp; &nbsp; &nbsp; &nbsp; ')
+            if line.startswith(' '):
+                line = '&nbsp;' + line[1:]
+            out.write('<tt>%s</tt><br>\n' % line)
+
+
+def htmldiff(source1, source2, accurate_mode, add_stylesheet=False):
     """
     Return the difference between two pieces of HTML::
 
         res = htmldiff('test1', 'test2')
     """
     h = NoTagHTMLMatcher(source1, source2, accurate_mode)
-    return h.htmlDiff(True)
+    return h.diff_html(True)
 
 
-def diffStrings(orig, new, accurate_mode):
+def diff_strings(orig, new, accurate_mode):
     """
     Given two strings of html, return a diffed string.
 
@@ -349,17 +372,17 @@ def diffStrings(orig, new, accurate_mode):
         pass
 
     # Decode the html entities and then encode to utf-8
-    orig = htmlDecode(orig)
+    orig = html_decode(orig)
     orig = orig.encode("utf-8")
 
-    new = htmlDecode(new)
+    new = html_decode(new)
     new = new.encode("utf-8")
     return htmldiff(orig, new, True, accurate_mode)
 
 
-def diffFiles(f1, f2, accurate_mode):
+def diff_files(f1, f2, accurate_mode):
     """
-    Given two files, open them to variables and pass them to diffStrings
+    Given two files, open them to variables and pass them to diff_strings
     for diffing.
 
     :type f1: object
@@ -371,49 +394,15 @@ def diffFiles(f1, f2, accurate_mode):
     :returns: string containing diffed html from f1 and f2
     """
     # Open the files
-    source1 = open(f1).read()
-    source2 = open(f2).read()
-    return diffStrings(source1, source2, accurate_mode)
+    with open(f1) as f:
+        LOG.debug("Reading file: {0}".format(f1))
+        source1 = f.read()
 
+    with open(f2) as f:
+        LOG.debug("Reading file: {0}".format(f2))
+        source2 = f.read()
 
-class TextMatcher(HTMLMatcher):
-
-    def set_seq1(self, a):
-        SequenceMatcher.set_seq1(self, a.split('\n'))
-
-    def set_seq2(self, b):
-        SequenceMatcher.set_seq2(self, b.split('\n'))
-
-    def htmlDiff(self, addStylesheet=False):
-        opcodes = self.get_opcodes()
-        a = self.a
-        b = self.b
-        out = StringIO()
-        for tag, i1, i2, j1, j2 in opcodes:
-            if tag == 'equal':
-                self.writeLines(a[i1:i2], out)
-            if tag == 'delete' or tag == 'replace':
-                out.write(self.startDeleteText())
-                self.writeLines(a[i1:i2], out)
-                out.write(self.endDeleteText())
-            if tag == 'insert' or tag == 'replace':
-                out.write(self.startInsertText())
-                self.writeLines(b[j1:j2], out)
-                out.write(self.endInsertText())
-        html = out.getvalue()
-        out.close()
-        if addStylesheet:
-            html = self.addStylesheet(html, self.stylesheet)
-        return html
-
-    def writeLines(self, lines, out):
-        for line in lines:
-            line = htmlEncode(line)
-            line = line.replace('  ', '&nbsp; ')
-            line = line.replace('\t', '&nbsp; &nbsp; &nbsp; &nbsp; ')
-            if line.startswith(' '):
-                line = '&nbsp;' + line[1:]
-            out.write('<tt>%s</tt><br>\n' % line)
+    return diff_strings(source1, source2, accurate_mode)
 
 
 def whitespacegen(spaces):
@@ -431,8 +420,7 @@ def whitespacegen(spaces):
     s = "&nbsp;&nbsp;&nbsp;&nbsp; " * int(words)
 
     # s = " " * spaces
-    s = "<span style=\"white-space: pre-wrap;\">" + s + "</span>"
-    return s
+    return '<span style="white-space: pre-wrap;">{0}</span>'.format(s)
 
 
 def span_to_whitespace(html_string, span):
@@ -524,91 +512,8 @@ def split_html(html_string):
         j = html_string.index(">", i) + 1
         k = html_string.index("</body")
     except ValueError:
-        raise Exception("This is not a full html document.")
+        raise ValueError("This is not a full html document.")
     start = html_string[:j]
     body = html_string[j:k]
     ending = html_string[k:]
     return start, body, ending
-
-
-def diff():
-    parser = argparse.ArgumentParser(
-        description="Tool for diffing html & xhtml files",
-    )
-    parser.add_argument("INPUT_FILE1")
-    parser.add_argument("INPUT_FILE2")
-    parser.add_argument(
-        '-o',
-        '--output_file',
-        action='store',
-        dest='out_fn',
-        default=None,
-        help='[OPTIONAL] Name of output file'
-    )
-    parser.add_argument(
-        '-a',
-        '--accurate-mode',
-        help='Use accurate mode instead of risky mode',
-        dest='accurate_mode',
-        default=False,
-        action='store_true'
-    )
-    parser.add_argument(
-        '-s',
-        '--side-by-side',
-        help='generate a side-by-side comparision instead of inline',
-        dest='side_by_side',
-        default=False,
-        action='store_true'
-    )
-    parser.add_argument(
-        "-V",
-        "--version",
-        dest="version",
-        action="version",
-        version=pkg_version,
-        help="Display the version number."
-    )
-
-    import traceback
-
-    parsed_args = parser.parse_args()
-    input_file1 = abspath(parsed_args.INPUT_FILE1)
-    input_file2 = abspath(parsed_args.INPUT_FILE2)
-    output_file = abspath(parsed_args.out_fn) if parsed_args.out_fn else None
-    accurate_mode = parsed_args.accurate_mode
-    sbs = parsed_args.side_by_side
-
-    if not os.path.exists(input_file1):
-        print('Error: could not find specified file: %s' % input_file1)
-        exit()
-
-    if not os.path.exists(input_file2):
-        print('Error: could not find specified file: %s' % input_file2)
-        exit()
-
-    if output_file is None:
-        output_file = abspath('diff_%s' % split(input_file1)[1])
-
-    try:
-        diffed_html = diffFiles(input_file1, input_file2, accurate_mode)
-        if sbs:
-            diffed_html = gen_side_by_side(diffed_html)
-    except Exception, ex:
-        print ex
-        print traceback.format_exc()
-        exit()
-
-    try:
-        dhtml = open(output_file, 'w')
-        dhtml.write(diffed_html)
-        dhtml.close()
-        print('Wrote file diff to %s' % output_file)
-    except Exception, ex:
-        print ex
-        print traceback.format_exc()
-        exit()
-
-
-if __name__ == "__main__":
-    diff()
