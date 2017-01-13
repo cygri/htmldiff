@@ -4,18 +4,15 @@
 .. moduleauthor:: Ian Bicking, Brant Watson <brant.watson@propylon.com>
 """
 # Standard Imports
-import os
-import re
+import argparse
 import cgi
 import HTMLParser
+import os
+import pkg_resources
+import re
 from copy import copy
-from optparse import OptionParser
-from os.path import (
-    abspath,
-    split,
-    join
-)
 from difflib import SequenceMatcher
+from os.path import abspath, split
 try:
     from cStringIO import StringIO
 except ImportError:
@@ -23,6 +20,16 @@ except ImportError:
 
 # HtmlDiff
 from font_lookup import get_spacing
+
+# Setup the version string globally
+try:
+    pkg_version = "%(prog)s {0}".format(
+        pkg_resources.get_distribution("wwe").version
+    )
+except pkg_resources.DistributionNotFound:
+    pkg_version = '%(prog)s Development'
+except Exception:
+    pkg_version = '%(prog)s Unknown'
 
 
 class TagStrip(HTMLParser.HTMLParser):
@@ -76,7 +83,7 @@ commentRE = re.compile('<!--.*?-->', re.S)
 tagRE = re.compile('<script.*?>.*?</script>|<.*?>', re.S)
 headRE = re.compile('<\s*head\s*>', re.S | re.I)
 wsRE = re.compile('^([ \n\r\t]|&nbsp;)+$')
-stopwords = [
+stopwords = frozenset((
     'I',
     'a',
     'about',
@@ -108,7 +115,7 @@ stopwords = [
     'who',
     'will',
     'with'
-]
+))
 
 
 def isJunk(x):
@@ -315,7 +322,6 @@ def htmldiff(source1, source2, accurate_mode, addStylesheet=False):
 
         res = htmldiff('test1', 'test2')
     """
-    #h = HTMLMatcher(source1, source2, accurate_mode)
     h = NoTagHTMLMatcher(source1, source2, accurate_mode)
     return h.htmlDiff(True)
 
@@ -332,10 +338,20 @@ def diffStrings(orig, new, accurate_mode):
     :param accurate_moode: use accurate mode or not
     :returns: string containing diffed html
     """
+    # Decode the data if it was utf-8 encoded to begin with
+    try:
+        orig = orig.decode('utf-8')
+    except Exception:
+        pass
+    try:
+        new = new.decode('utf-8')
+    except Exception:
+        pass
 
     # Decode the html entities and then encode to utf-8
     orig = htmlDecode(orig)
     orig = orig.encode("utf-8")
+
     new = htmlDecode(new)
     new = new.encode("utf-8")
     return htmldiff(orig, new, True, accurate_mode)
@@ -414,7 +430,7 @@ def whitespacegen(spaces):
     words = spaces / 5
     s = "&nbsp;&nbsp;&nbsp;&nbsp; " * int(words)
 
-    #s = " " * spaces
+    # s = " " * spaces
     s = "<span style=\"white-space: pre-wrap;\">" + s + "</span>"
     return s
 
@@ -516,73 +532,52 @@ def split_html(html_string):
 
 
 def diff():
-    command_name = "diff_html"
-    """
-    Given two html files, create an output html diff of the two versions
-    showing the differences between them.
-    """
-    use = """%s INPUT_FILE1 INPUT_FILE2 [-o OUTPUT_FILE]
-
-    INPUT_FILE1
-        First file to diff from
-
-    INPUT_FILE2
-        File to diff against
-
-    -o --output OUTPUT_FILE
-        [Optional] Specify a custom filename for output
-
-    -a --accurate-mode
-        [Optional] Use accurate mode instead of risky mode
-
-    -s --side-by-side
-        [Optional] generate a side-by-side comparision instead of inline
-
-    -use
-        Will print this message.""" % command_name
-
-    parser = OptionParser(usage=use)
-    parser.add_option(
+    parser = argparse.ArgumentParser(
+        description="Tool for diffing html & xhtml files",
+    )
+    parser.add_argument("INPUT_FILE1")
+    parser.add_argument("INPUT_FILE2")
+    parser.add_argument(
         '-o',
         '--output_file',
         action='store',
-        dest='output_file',
+        dest='out_fn',
         default=None,
         help='[OPTIONAL] Name of output file'
     )
-    parser.add_option(
+    parser.add_argument(
         '-a',
         '--accurate-mode',
         help='Use accurate mode instead of risky mode',
-        dest='mode',
+        dest='accurate_mode',
         default=False,
         action='store_true'
     )
-    parser.add_option(
+    parser.add_argument(
         '-s',
         '--side-by-side',
         help='generate a side-by-side comparision instead of inline',
-        dest='sbs',
+        dest='side_by_side',
         default=False,
         action='store_true'
     )
+    parser.add_argument(
+        "-V",
+        "--version",
+        dest="version",
+        action="version",
+        version=pkg_version,
+        help="Display the version number."
+    )
 
-    (options, args) = parser.parse_args()
-    if len(args) < 2:
-        print use
-        exit()
-    if len(args) > 2:
-        print use
-        exit()
+    import traceback
 
-    output_file = vars(options)['output_file']
-    accurate_mode = vars(options)['mode']
-    sbs = vars(options)['sbs']
-    input_file1 = args[0]
-    input_file2 = args[1]
-
-    # Get the actual path
-    path = split(abspath(input_file1))[0]
+    parsed_args = parser.parse_args()
+    input_file1 = abspath(parsed_args.INPUT_FILE1)
+    input_file2 = abspath(parsed_args.INPUT_FILE2)
+    output_file = abspath(parsed_args.out_fn) if parsed_args.out_fn else None
+    accurate_mode = parsed_args.accurate_mode
+    sbs = parsed_args.side_by_side
 
     if not os.path.exists(input_file1):
         print('Error: could not find specified file: %s' % input_file1)
@@ -593,9 +588,7 @@ def diff():
         exit()
 
     if output_file is None:
-        output_file = 'diff_%s' % split(abspath(input_file1))[1]
-
-    output = join(path, output_file)
+        output_file = abspath('diff_%s' % split(input_file1)[1])
 
     try:
         diffed_html = diffFiles(input_file1, input_file2, accurate_mode)
@@ -603,15 +596,17 @@ def diff():
             diffed_html = gen_side_by_side(diffed_html)
     except Exception, ex:
         print ex
+        print traceback.format_exc()
         exit()
 
     try:
-        dhtml = open(output, 'w')
+        dhtml = open(output_file, 'w')
         dhtml.write(diffed_html)
         dhtml.close()
-        print('Wrote file diff to %s' % output)
+        print('Wrote file diff to %s' % output_file)
     except Exception, ex:
         print ex
+        print traceback.format_exc()
         exit()
 
 

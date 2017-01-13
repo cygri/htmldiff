@@ -36,12 +36,12 @@ Usage
 
 To produce a diff of two html files::
 
-    $ diff_html file1.html file2.html
+    $ htmldiff file1.html file2.html
     Wrote file diff to /absolute/path/to/diff_file1.html
 
 With custom output file::
 
-    $ diff_html file1.html file2.html -o myfile.html
+    $ htmldiff file1.html file2.html -o myfile.html
     Wrote file diff to /absolute/path/to/myfile.html
 
 All options:
@@ -50,6 +50,3 @@ All options:
  * -s --side-by-side  [Optional] Generate a side-by-side comparison instead of inline
  * -o --output OUTPUT_FILE [Optional] Specify a custom output file
  * -h --help  - Prints command line help
-
-Note: I'm looking for a better command line entry point name than "diff_html" so I'm
-open to suggestions here.
