@@ -36,17 +36,28 @@ Usage
 
 To produce a diff of two html files::
 
-    $ htmldiff file1.html file2.html
-    Wrote file diff to /absolute/path/to/diff_file1.html
+    $ htmldiff file1.html file2.html > diff_file.html
 
 With custom output file::
 
     $ htmldiff file1.html file2.html -o myfile.html
-    Wrote file diff to /absolute/path/to/myfile.html
+    INFO: Selected inline diff
+    INFO: Diffing files...
+    INFO: Wrote file diff to /absolute/path/to/myfile.html
+
+Produce a side-by-side diff instead of an inline diff::
+
+    $ htmldiff file1.html file2.html -s > diff_file.html
+    INFO: Selected inline diff
+    INFO: Diffing files...
+
 
 All options:
 
- * -a --accurate-mode [Optional] Use accurate mode instead of risky mode
- * -s --side-by-side  [Optional] Generate a side-by-side comparison instead of inline
- * -o --output OUTPUT_FILE [Optional] Specify a custom output file
+ * -a --accurate-mode Use accurate mode instead of risky mode
+ * -s --side-by-side Generate a side-by-side comparison instead of inline
+ * -o --output_file OUTPUT_FILE [Optional] Specify a custom output file
+ * -l --log-level (DEBUG,INFO,WARNING,ERROR,CRITICAL)
+ * -L --log-file Location to place logging output
+ * -V --version Print the application version and exit
  * -h --help  - Prints command line help

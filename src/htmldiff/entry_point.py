@@ -9,8 +9,7 @@ import argparse
 import logging
 import sys
 import pkg_resources
-from os.path import abspath, split
-
+from os.path import abspath
 # Project
 from htmldiff.lib import diff_files, gen_side_by_side
 from htmldiff.logger import logging_init
@@ -40,7 +39,7 @@ def diff():
         action='store',
         dest='out_fn',
         default=None,
-        help='[OPTIONAL] Name of output file'
+        help='[OPTIONAL] Write to given output file instead of stdout'
     )
     parser.add_argument(
         '-a',
@@ -101,10 +100,6 @@ def diff():
         LOG.error("Could not find: {0}".format(input_file2))
         sys.exit(1)
 
-    if output_file is None:
-        output_file = abspath('diff_%s' % split(input_file1)[1])
-        LOG.debug("Using output file: {0}".format(output_file))
-
     LOG.debug("File 1: {0}".format(input_file1))
     LOG.debug("File 2: {0}".format(input_file2))
 
@@ -122,17 +117,20 @@ def diff():
         LOG.exception("Diff process exited with an error")
         sys.exit(1)
 
-    try:
-        with open(output_file, 'w') as f:
-            f.seek(0)
-            f.truncate()
-            f.write(diffed_html)
-    except Exception:
-        LOG.exception("Unable to write diff to {0}".format(output_file))
-        sys.exit(1)
+    if output_file is None:
+        sys.stdout.write(diffed_html)
     else:
-        LOG.info("Wrote diff to {0}".format(output_file))
-        sys.exit(0)
+        try:
+            with open(output_file, 'w') as f:
+                f.seek(0)
+                f.truncate()
+                f.write(diffed_html)
+        except Exception:
+            LOG.exception("Unable to write diff to {0}".format(output_file))
+            sys.exit(1)
+        else:
+            LOG.info("Wrote diff to {0}".format(output_file))
+            sys.exit(0)
 
 
 def main():
