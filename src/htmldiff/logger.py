@@ -28,21 +28,21 @@ def logging_init(level, logfile=None, debug_mode=False):
         'version': 1,
         'disable_existing_loggers': False,
         'formatters': {
-            "ConsoleFormatter": {
-                "format": "%(levelname)s: %(message)s",
-                "datefmt": "%Y-%m-%d %H:%M:%S",
+            'ConsoleFormatter': {
+                'format': '%(levelname)s: %(message)s',
+                'datefmt': '%Y-%m-%d %H:%M:%S',
             },
-            "FileFormatter": {
-                "format": ("%(levelname)-8s: %(asctime)s '%(message)s' "
-                           "%(name)s:%(lineno)s"),
-                "datefmt": "%Y-%m-%d %H:%M:%S",
+            'FileFormatter': {
+                'format': ("%(levelname)-8s: %(asctime)s '%(message)s' "
+                           '%(name)s:%(lineno)s'),
+                'datefmt': '%Y-%m-%d %H:%M:%S',
             },
         },
         'handlers': {
-            "console": {
-                "level": "DEBUG",
-                "class": "logging.StreamHandler",
-                "formatter": "ConsoleFormatter",
+            'console': {
+                'level': 'DEBUG',
+                'class': 'logging.StreamHandler',
+                'formatter': 'ConsoleFormatter',
             },
         },
         'loggers': {

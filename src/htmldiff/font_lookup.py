@@ -1,8 +1,4 @@
-"""
-.. module:: htmldiff.fontlookup
-:synopsis: Terrible hack to generate whitespace with *more accuracy.
-.. moduleauthor:: Brant Watson <brant.watson@propylon.com>
-"""
+"""Hacky font lookup table."""
 
 #  Default
 times_new_roman = {
@@ -96,7 +92,7 @@ def get_spacing(string, font_type):
     """
 
     if font_type not in fonts.keys():
-        raise Exception("Unsupported font type specified")
+        raise Exception('Unsupported font type specified')
 
     lookup_table = fonts[font_type]
     whitespace = 0

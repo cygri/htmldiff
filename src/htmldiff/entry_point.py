@@ -10,14 +10,15 @@ import logging
 import sys
 import pkg_resources
 from os.path import abspath
+
 # Project
 from htmldiff.lib import diff_files, gen_side_by_side
 from htmldiff.logger import logging_init
 
 # Setup the version string
 try:
-    pkg_version = "%(prog)s {0}".format(
-        pkg_resources.get_distribution("htmldiff").version
+    pkg_version = '%(prog)s {0}'.format(
+        pkg_resources.get_distribution('htmldiff').version
     )
 except pkg_resources.DistributionNotFound:
     pkg_version = '%(prog)s Development'
@@ -29,10 +30,10 @@ LOG = logging.getLogger(__name__)
 
 def diff():
     parser = argparse.ArgumentParser(
-        description="Tool for diffing html & xhtml files",
+        description='Tool for diffing html & xhtml files',
     )
-    parser.add_argument("INPUT_FILE1")
-    parser.add_argument("INPUT_FILE2")
+    parser.add_argument('INPUT_FILE1')
+    parser.add_argument('INPUT_FILE2')
     parser.add_argument(
         '-o',
         '--output_file',
@@ -58,26 +59,26 @@ def diff():
         action='store_true'
     )
     parser.add_argument(
-        "-V",
-        "--version",
-        dest="version",
-        action="version",
+        '-V',
+        '--version',
+        dest='version',
+        action='version',
         version=pkg_version,
-        help="Display the version number."
+        help='Display the version number.'
     )
     parser.add_argument(
         '-l',
         '--log-level',
         default='INFO',
         choices=('DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'),
-        help="Logging level for Montana Scripts."
+        help='Logging level for Montana Scripts.'
     )
     parser.add_argument(
-        "-L",
-        "--logfile",
-        dest="logfile",
+        '-L',
+        '--logfile',
+        dest='logfile',
         default=None,
-        help="Location to place a log of the process output"
+        help='Location to place a log of the process output'
     )
     parsed_args = parser.parse_args()
 
@@ -88,33 +89,33 @@ def diff():
     accurate_mode = parsed_args.accurate_mode
     sbs = parsed_args.side_by_side
     if sbs:
-        LOG.info("Selected side-by-side diff")
+        LOG.info('Selected side-by-side diff')
     else:
         LOG.info('Selected inline diff')
 
     if not os.path.exists(input_file1):
-        LOG.error("Could not find: {0}".format(input_file1))
+        LOG.error('Could not find: {0}'.format(input_file1))
         sys.exit(1)
 
     if not os.path.exists(input_file2):
-        LOG.error("Could not find: {0}".format(input_file2))
+        LOG.error('Could not find: {0}'.format(input_file2))
         sys.exit(1)
 
-    LOG.debug("File 1: {0}".format(input_file1))
-    LOG.debug("File 2: {0}".format(input_file2))
+    LOG.debug('File 1: {0}'.format(input_file1))
+    LOG.debug('File 2: {0}'.format(input_file2))
 
     if parsed_args.accurate_mode:
         LOG.debug("Using 'Accurate' mode")
     else:
         LOG.debug("Using 'Risky' mode")
 
-    LOG.info("Diffing files...")
+    LOG.info('Diffing files...')
     try:
         diffed_html = diff_files(input_file1, input_file2, accurate_mode)
         if sbs:
             diffed_html = gen_side_by_side(diffed_html)
     except Exception:
-        LOG.exception("Diff process exited with an error")
+        LOG.exception('Diff process exited with an error')
         sys.exit(1)
 
     if output_file is None:
@@ -126,14 +127,16 @@ def diff():
                 f.truncate()
                 f.write(diffed_html)
         except Exception:
-            LOG.exception("Unable to write diff to {0}".format(output_file))
+            LOG.exception('Unable to write diff to {0}'.format(output_file))
             sys.exit(1)
         else:
-            LOG.info("Wrote diff to {0}".format(output_file))
+            LOG.info('Wrote diff to {0}'.format(output_file))
             sys.exit(0)
 
 
 def main():
+    import time
+    t = time.time()
     try:
         diff()
     except KeyboardInterrupt:
@@ -143,6 +146,7 @@ def main():
         )
         sys.exit(1)
 
+    sys.stderr.write('Took {0:0.4f} seconds\n'.format(time.time() - t))
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
