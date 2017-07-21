@@ -1,20 +1,17 @@
-Original version is from [Ian Bicking](https://github.com/ianb)
-with changes from [Richard Cyganiak](https://github.com/cygri).
-License: MIT
+htmldiff
+========
+HTML Diffing utility.
 
-Project forked by Brant Watson for setuptools changes and maintaince.
+- Original is from [Ian Bicking](https://github.com/ianb)
+- Updates and improvements from [Richard Cyganiak] (https://github.com/cygri)
+- Refactored for use with setup tools and adding side-by-side diffing by
+  [Brant Watson](https://github.com/induane)
+
+License: MIT
 
 Installation
 ============
-As with a lot of packages, it's often much nicer to work
-in a virtual environment instead of installing everything to
-your global python installation. Running these commands
-when not in a virtualenv will require root access. Setting up
-a python virtual environment is beyond the scope of this document
-but I'd recommend a quick google for virtualenvwrapper as it
-makes managing these much easier.
-
-To build a source package which gets placed in the dist subfolder::
+To build a source package::
 
     $ python setup.py sdist
 
@@ -28,7 +25,7 @@ Or via pip::
 
 Pip may also be used to install a built package::
 
-    $ pip install htmldiff-1a.0.0.dev5.tar.gz
+    $ pip install htmldiff-1.0.0.dev6.tar.gz
 
 
 Usage
