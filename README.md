@@ -1,46 +1,60 @@
-# htmldiff.py
+htmldiff
+========
+HTML Diffing utility.
 
-Usage: `htmldiff version1.html version2.html > diff.html`
+- Original is from [Ian Bicking](https://github.com/ianb)
+- Updates and improvements from [Richard Cyganiak] (https://github.com/cygri)
+- Refactored for use with setup tools and adding side-by-side diffing by
+  [Brant Watson](https://github.com/induane)
 
-htmldiff outputs HTML that shows the differences in text between
-two versions of an HTML document. Differences in markup are not
-shown.
+License: MIT
 
-Original version is from [Ian Bicking](https://github.com/ianb)
-with changes from [Richard Cyganiak](https://github.com/cygri).
+Installation
+============
+To build a source package::
 
-## Requirements
+    $ python setup.py sdist
 
-* Python 2.7
+To install into your current environment::
 
-## Using with Mercurial
+    $ python setup.py install
 
-Put `htmldiff` on the path, and add the following to `~/.hgrc`:
+Or via pip::
 
-    [extensions]
-    hgext.extdiff =
+    $ pip install .
 
-    [extdiff]
-    cmd.htmldiff = htmldiff
+Pip may also be used to install a built package::
 
-Then you can do: `hg htmldiff index.html > diff.html`
+    $ pip install htmldiff-1.0.0.dev6.tar.gz
 
-## Limitations
 
-This uses Python's `SequenceMatcher`, which is generally a bit crap
-and sometimes misses long possible matches, especially if the long
-match is punctuated by short non-matches, which happens easily for
-example if markup is systematically changed. You can try uncommenting
-the simpler version of the `isJunk` function in the source to make
-this slightly better, at the price of less speed and more noise.
+Usage
+=====
 
-## Ideas for future improvements
+To produce a diff of two html files::
 
-* Add flag for "accurate" versus "risky" mode, see Limitations above
-* Allow diffing only of a given section by specifying an `id`
-* Allow input by URL
-* Make a web service
+    $ htmldiff file1.html file2.html > diff_file.html
 
-## License
+With custom output file::
 
-MIT License, see `LICENSE.txt`.
+    $ htmldiff file1.html file2.html -o myfile.html
+    INFO: Selected inline diff
+    INFO: Diffing files...
+    INFO: Wrote file diff to /absolute/path/to/myfile.html
+
+Produce a side-by-side diff instead of an inline diff::
+
+    $ htmldiff file1.html file2.html -s > diff_file.html
+    INFO: Selected inline diff
+    INFO: Diffing files...
+
+
+All options:
+
+ * -a --accurate-mode Use accurate mode instead of risky mode
+ * -s --side-by-side Generate a side-by-side comparison instead of inline
+ * -o --output_file OUTPUT_FILE [Optional] Specify a custom output file
+ * -l --log-level (DEBUG,INFO,WARNING,ERROR,CRITICAL)
+ * -L --log-file Location to place logging output
+ * -V --version Print the application version and exit
+ * -h --help  - Prints command line help

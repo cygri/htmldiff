@@ -1,0 +1,5 @@
+The original epydoc pdf has been removed because the
+api has diverged enough to make its usefulness very
+limited. Until real documentation is in place, I'm
+leaving this as a placeholder. Do note that the
+entry point "htmldiff" does include help.
