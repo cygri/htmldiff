@@ -215,6 +215,7 @@ class HTMLMatcher(SequenceMatcher):
             if item.startswith('<'):
                 self.out_delete(''.join(text), out)
                 text = []
+                out.write(item)
             else:
                 text.append(item)
         self.out_delete(''.join(text), out)
