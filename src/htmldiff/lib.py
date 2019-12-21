@@ -4,7 +4,13 @@
 .. moduleauthor:: Ian Bicking, Brant Watson <brant.watson@propylon.com>
 """
 # Standard Imports
-import HTMLParser
+import sys
+
+if (sys.version_info < (3, 0)):
+    from HTMLParser import HTMLParser
+else:
+    from html.parser import HTMLParser
+
 import logging
 from copy import copy
 from difflib import SequenceMatcher
@@ -28,6 +34,16 @@ def utf8_encode(val):
         return val.encode('utf-8')
     elif isinstance(val, six.binary_type):
         return val
+    else:
+        raise TypeError('{} is not a unicode or str object'.format(val))
+
+
+def utf8_decode(val):
+    """Return a string."""
+    if isinstance(val, six.text_type):
+        return val
+    elif isinstance(val, six.binary_type):
+        return val.decode('utf-8')
     else:
         raise TypeError('{} is not a unicode or str object'.format(val))
 
@@ -101,7 +117,7 @@ class TagIter(object):
         if self.end_reached:
             raise StopIteration
 
-        match = constants.TAG_RE.search(self.html_string, pos=self.pos)
+        match = constants.TAG_RE.search(utf8_decode(self.html_string), pos=self.pos)
         if not match:
             self.end_reached = True
             return self.html_string[self.pos:]
@@ -115,7 +131,7 @@ class TagIter(object):
         return self.__next__()
 
 
-class TagStrip(HTMLParser.HTMLParser):
+class TagStrip(HTMLParser):
     """
     Subclass of HTMLParser used to strip html tags from strings
     """
@@ -162,10 +178,10 @@ class HTMLMatcher(SequenceMatcher):
         LOG.debug('Splitting html into tag pieces and words')
         result = []
         for item in TagIter(t):
-            if item.startswith('<'):
+            if utf8_decode(item).startswith('<'):
                 result.append(item)
             else:
-                result.extend(constants.WORD_RE.findall(item))
+                result.extend(constants.WORD_RE.findall(utf8_decode(item)))
         return result
 
     def diff_html(self, insert_stylesheet=True):
@@ -177,7 +193,7 @@ class HTMLMatcher(SequenceMatcher):
             LOG.debug('Processing opcodes for tag %s', tag)
             if tag == 'equal':
                 for item in a[i1:i2]:
-                    out.write(item)
+                    out.write(utf8_encode(item))
             if tag == 'delete':
                 self.text_delete(a[i1:i2], out)
             if tag == 'insert':
@@ -185,7 +201,7 @@ class HTMLMatcher(SequenceMatcher):
             if tag == 'replace':
                 if (self.is_invisible_change(a[i1:i2], b[j1:j2])):
                     for item in b[j1:j2]:
-                        out.write(item)
+                        out.write(utf8_encode(item))
                 else:
                     self.text_delete(a[i1:i2], out)
                     self.text_insert(b[j1:j2], out)
@@ -225,7 +241,7 @@ class HTMLMatcher(SequenceMatcher):
             if item.startswith('<'):
                 self.out_insert(''.join(text), out)
                 text = []
-                out.write(item)
+                out.write(utf8_encode(item))
             else:
                 text.append(item)
         self.out_insert(''.join(text), out)
@@ -235,14 +251,14 @@ class HTMLMatcher(SequenceMatcher):
             val = s
         else:
             val = ''.join((self.start_delete_text, s, self.end_span_text))
-        out.write(val)
+        out.write(utf8_encode(val))
 
     def out_insert(self, s, out):
         if not s.strip():
             val = s
         else:
             val = ''.join((self.start_insert_text, s, self.end_span_text))
-        out.write(val)
+        out.write(utf8_encode(val))
 
     def insert_stylesheet(self, html, stylesheet=None):
         """
@@ -259,14 +275,14 @@ class HTMLMatcher(SequenceMatcher):
         if not stylesheet:
             stylesheet = self.stylesheet
         LOG.debug('Inserting stylesheet...')
-        match = constants.HEAD_RE.search(html)
+        match = constants.HEAD_RE.search(utf8_decode(html))
         pos = match.end() if match else 0
         return ''.join((
-            html[:pos],
+            utf8_decode(html[:pos]),
             '\n<style type="text/css">\n',
             stylesheet,
             '</style>',
-            html[pos:],
+            utf8_decode(html[pos:]),
         ))
 
 
