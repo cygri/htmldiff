@@ -177,11 +177,12 @@ class HTMLMatcher(SequenceMatcher):
     def split_html(self, t):
         LOG.debug('Splitting html into tag pieces and words')
         result = []
+        t = utf8_decode(t)
         for item in TagIter(t):
-            if utf8_decode(item).startswith('<'):
+            if item.startswith('<'):
                 result.append(item)
             else:
-                result.extend(constants.WORD_RE.findall(utf8_decode(item)))
+                result.extend(constants.WORD_RE.findall(item))
         return result
 
     def diff_html(self, insert_stylesheet=True):
