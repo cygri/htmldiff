@@ -138,6 +138,7 @@ class TagStrip(HTMLParser):
     def __init__(self):
         self.reset()
         self.fed = []
+        self.convert_charrefs = False
 
     def handle_data(self, s):
         self.fed.append(s)
