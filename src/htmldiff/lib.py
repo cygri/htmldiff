@@ -95,7 +95,7 @@ def is_junk(x):
     :param x: string to match against
     :returns: regex matched or lowercased x
     """
-    return constants.WS_RE.match(x) or x.lower() in constants.STOPWORDS
+    return constants.WS_RE.match(utf8_decode(x)) or x.lower() in constants.STOPWORDS
 
 
 class TagIter(object):
